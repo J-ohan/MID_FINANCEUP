@@ -4,3 +4,4 @@ bd_local/postgres.log
 *.exe~
 lastupdate.tmp
 crud.log
+mid.log
