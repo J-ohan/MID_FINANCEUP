@@ -1,0 +1,943 @@
+swagger: "2.0"
+info:
+  title: FinanceUp - crud_auth
+  description: |
+    CRUD del schema auth de la base de datos financeup
+  version: 1.0.0
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+basePath: /v1
+paths:
+  /auditoria_login/:
+    get:
+      tags:
+      - auditoria_login
+      description: |-
+        get AuditoriaLogin
+        <br>
+      operationId: AuditoriaLoginController.Get All
+      parameters:
+      - in: query
+        name: query
+        description: Filter. e.g. col1:v1,col2:v2 ...
+        type: string
+      - in: query
+        name: fields
+        description: Fields returned. e.g. col1,col2 ...
+        type: string
+      - in: query
+        name: sortby
+        description: Sorted-by fields. e.g. col1,col2 ...
+        type: string
+      - in: query
+        name: order
+        description: Order corresponding to each sortby field, if single value, apply
+          to all sortby fields. e.g. desc,asc ...
+        type: string
+      - in: query
+        name: limit
+        description: Limit the size of result set. Must be an integer
+        type: string
+      - in: query
+        name: offset
+        description: Start position of result set. Must be an integer
+        type: string
+      responses:
+        "200":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.AuditoriaLogin'
+        "403":
+          description: ""
+    post:
+      tags:
+      - auditoria_login
+      description: |-
+        create AuditoriaLogin
+        <br>
+      operationId: AuditoriaLoginController.Post
+      parameters:
+      - in: body
+        name: body
+        description: body for AuditoriaLogin content
+        required: true
+        schema:
+          $ref: '#/definitions/models.AuditoriaLogin'
+      responses:
+        "201":
+          description: '{int} models.AuditoriaLogin'
+        "403":
+          description: body is empty
+  /auditoria_login/{id}:
+    get:
+      tags:
+      - auditoria_login
+      description: |-
+        get AuditoriaLogin by id
+        <br>
+      operationId: AuditoriaLoginController.Get One
+      parameters:
+      - in: path
+        name: id
+        description: The key for staticblock
+        required: true
+        type: string
+      responses:
+        "200":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.AuditoriaLogin'
+        "403":
+          description: :id is empty
+    put:
+      tags:
+      - auditoria_login
+      description: |-
+        update the AuditoriaLogin
+        <br>
+      operationId: AuditoriaLoginController.Put
+      parameters:
+      - in: path
+        name: id
+        description: The id you want to update
+        required: true
+        type: string
+      - in: body
+        name: body
+        description: body for AuditoriaLogin content
+        required: true
+        schema:
+          $ref: '#/definitions/models.AuditoriaLogin'
+      responses:
+        "200":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.AuditoriaLogin'
+        "403":
+          description: :id is not int
+    delete:
+      tags:
+      - auditoria_login
+      description: |-
+        delete the AuditoriaLogin
+        <br>
+      operationId: AuditoriaLoginController.Delete
+      parameters:
+      - in: path
+        name: id
+        description: The id you want to delete
+        required: true
+        type: string
+      responses:
+        "200":
+          description: '{string} delete success!'
+        "403":
+          description: id is empty
+  /credencial/:
+    get:
+      tags:
+      - credencial
+      description: |-
+        get Credencial
+        <br>
+      operationId: CredencialController.Get All
+      parameters:
+      - in: query
+        name: query
+        description: Filter. e.g. col1:v1,col2:v2 ...
+        type: string
+      - in: query
+        name: fields
+        description: Fields returned. e.g. col1,col2 ...
+        type: string
+      - in: query
+        name: sortby
+        description: Sorted-by fields. e.g. col1,col2 ...
+        type: string
+      - in: query
+        name: order
+        description: Order corresponding to each sortby field, if single value, apply
+          to all sortby fields. e.g. desc,asc ...
+        type: string
+      - in: query
+        name: limit
+        description: Limit the size of result set. Must be an integer
+        type: string
+      - in: query
+        name: offset
+        description: Start position of result set. Must be an integer
+        type: string
+      responses:
+        "200":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.Credencial'
+        "403":
+          description: ""
+    post:
+      tags:
+      - credencial
+      description: |-
+        create Credencial
+        <br>
+      operationId: CredencialController.Post
+      parameters:
+      - in: body
+        name: body
+        description: body for Credencial content
+        required: true
+        schema:
+          $ref: '#/definitions/models.Credencial'
+      responses:
+        "201":
+          description: '{int} models.Credencial'
+        "403":
+          description: body is empty
+  /credencial/{id}:
+    get:
+      tags:
+      - credencial
+      description: |-
+        get Credencial by id
+        <br>
+      operationId: CredencialController.Get One
+      parameters:
+      - in: path
+        name: id
+        description: The key for staticblock
+        required: true
+        type: string
+      responses:
+        "200":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.Credencial'
+        "403":
+          description: :id is empty
+    put:
+      tags:
+      - credencial
+      description: |-
+        update the Credencial
+        <br>
+      operationId: CredencialController.Put
+      parameters:
+      - in: path
+        name: id
+        description: The id you want to update
+        required: true
+        type: string
+      - in: body
+        name: body
+        description: body for Credencial content
+        required: true
+        schema:
+          $ref: '#/definitions/models.Credencial'
+      responses:
+        "200":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.Credencial'
+        "403":
+          description: :id is not int
+    delete:
+      tags:
+      - credencial
+      description: |-
+        delete the Credencial
+        <br>
+      operationId: CredencialController.Delete
+      parameters:
+      - in: path
+        name: id
+        description: The id you want to delete
+        required: true
+        type: string
+      responses:
+        "200":
+          description: '{string} delete success!'
+        "403":
+          description: id is empty
+  /rol/:
+    get:
+      tags:
+      - rol
+      description: |-
+        get Rol
+        <br>
+      operationId: RolController.Get All
+      parameters:
+      - in: query
+        name: query
+        description: Filter. e.g. col1:v1,col2:v2 ...
+        type: string
+      - in: query
+        name: fields
+        description: Fields returned. e.g. col1,col2 ...
+        type: string
+      - in: query
+        name: sortby
+        description: Sorted-by fields. e.g. col1,col2 ...
+        type: string
+      - in: query
+        name: order
+        description: Order corresponding to each sortby field, if single value, apply
+          to all sortby fields. e.g. desc,asc ...
+        type: string
+      - in: query
+        name: limit
+        description: Limit the size of result set. Must be an integer
+        type: string
+      - in: query
+        name: offset
+        description: Start position of result set. Must be an integer
+        type: string
+      responses:
+        "200":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.Rol'
+        "403":
+          description: ""
+    post:
+      tags:
+      - rol
+      description: |-
+        create Rol
+        <br>
+      operationId: RolController.Post
+      parameters:
+      - in: body
+        name: body
+        description: body for Rol content
+        required: true
+        schema:
+          $ref: '#/definitions/models.Rol'
+      responses:
+        "201":
+          description: '{int} models.Rol'
+        "403":
+          description: body is empty
+  /rol/{id}:
+    get:
+      tags:
+      - rol
+      description: |-
+        get Rol by id
+        <br>
+      operationId: RolController.Get One
+      parameters:
+      - in: path
+        name: id
+        description: The key for staticblock
+        required: true
+        type: string
+      responses:
+        "200":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.Rol'
+        "403":
+          description: :id is empty
+    put:
+      tags:
+      - rol
+      description: |-
+        update the Rol
+        <br>
+      operationId: RolController.Put
+      parameters:
+      - in: path
+        name: id
+        description: The id you want to update
+        required: true
+        type: string
+      - in: body
+        name: body
+        description: body for Rol content
+        required: true
+        schema:
+          $ref: '#/definitions/models.Rol'
+      responses:
+        "200":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.Rol'
+        "403":
+          description: :id is not int
+    delete:
+      tags:
+      - rol
+      description: |-
+        delete the Rol
+        <br>
+      operationId: RolController.Delete
+      parameters:
+      - in: path
+        name: id
+        description: The id you want to delete
+        required: true
+        type: string
+      responses:
+        "200":
+          description: '{string} delete success!'
+        "403":
+          description: id is empty
+  /tipo_documento/:
+    get:
+      tags:
+      - tipo_documento
+      description: |-
+        get TipoDocumento
+        <br>
+      operationId: TipoDocumentoController.Get All
+      parameters:
+      - in: query
+        name: query
+        description: Filter. e.g. col1:v1,col2:v2 ...
+        type: string
+      - in: query
+        name: fields
+        description: Fields returned. e.g. col1,col2 ...
+        type: string
+      - in: query
+        name: sortby
+        description: Sorted-by fields. e.g. col1,col2 ...
+        type: string
+      - in: query
+        name: order
+        description: Order corresponding to each sortby field, if single value, apply
+          to all sortby fields. e.g. desc,asc ...
+        type: string
+      - in: query
+        name: limit
+        description: Limit the size of result set. Must be an integer
+        type: string
+      - in: query
+        name: offset
+        description: Start position of result set. Must be an integer
+        type: string
+      responses:
+        "200":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.TipoDocumento'
+        "403":
+          description: ""
+    post:
+      tags:
+      - tipo_documento
+      description: |-
+        create TipoDocumento
+        <br>
+      operationId: TipoDocumentoController.Post
+      parameters:
+      - in: body
+        name: body
+        description: body for TipoDocumento content
+        required: true
+        schema:
+          $ref: '#/definitions/models.TipoDocumento'
+      responses:
+        "201":
+          description: '{int} models.TipoDocumento'
+        "403":
+          description: body is empty
+  /tipo_documento/{id}:
+    get:
+      tags:
+      - tipo_documento
+      description: |-
+        get TipoDocumento by id
+        <br>
+      operationId: TipoDocumentoController.Get One
+      parameters:
+      - in: path
+        name: id
+        description: The key for staticblock
+        required: true
+        type: string
+      responses:
+        "200":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.TipoDocumento'
+        "403":
+          description: :id is empty
+    put:
+      tags:
+      - tipo_documento
+      description: |-
+        update the TipoDocumento
+        <br>
+      operationId: TipoDocumentoController.Put
+      parameters:
+      - in: path
+        name: id
+        description: The id you want to update
+        required: true
+        type: string
+      - in: body
+        name: body
+        description: body for TipoDocumento content
+        required: true
+        schema:
+          $ref: '#/definitions/models.TipoDocumento'
+      responses:
+        "200":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.TipoDocumento'
+        "403":
+          description: :id is not int
+    delete:
+      tags:
+      - tipo_documento
+      description: |-
+        delete the TipoDocumento
+        <br>
+      operationId: TipoDocumentoController.Delete
+      parameters:
+      - in: path
+        name: id
+        description: The id you want to delete
+        required: true
+        type: string
+      responses:
+        "200":
+          description: '{string} delete success!'
+        "403":
+          description: id is empty
+  /usuario/:
+    get:
+      tags:
+      - usuario
+      description: |-
+        get Usuario
+        <br>
+      operationId: UsuarioController.Get All
+      parameters:
+      - in: query
+        name: query
+        description: Filter. e.g. col1:v1,col2:v2 ...
+        type: string
+      - in: query
+        name: fields
+        description: Fields returned. e.g. col1,col2 ...
+        type: string
+      - in: query
+        name: sortby
+        description: Sorted-by fields. e.g. col1,col2 ...
+        type: string
+      - in: query
+        name: order
+        description: Order corresponding to each sortby field, if single value, apply
+          to all sortby fields. e.g. desc,asc ...
+        type: string
+      - in: query
+        name: limit
+        description: Limit the size of result set. Must be an integer
+        type: string
+      - in: query
+        name: offset
+        description: Start position of result set. Must be an integer
+        type: string
+      responses:
+        "200":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.Usuario'
+        "403":
+          description: ""
+    post:
+      tags:
+      - usuario
+      description: |-
+        create Usuario
+        <br>
+      operationId: UsuarioController.Post
+      parameters:
+      - in: body
+        name: body
+        description: body for Usuario content
+        required: true
+        schema:
+          $ref: '#/definitions/models.Usuario'
+      responses:
+        "201":
+          description: '{int} models.Usuario'
+        "403":
+          description: body is empty
+  /usuario/{id}:
+    get:
+      tags:
+      - usuario
+      description: |-
+        get Usuario by id
+        <br>
+      operationId: UsuarioController.Get One
+      parameters:
+      - in: path
+        name: id
+        description: The key for staticblock
+        required: true
+        type: string
+      responses:
+        "200":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.Usuario'
+        "403":
+          description: :id is empty
+    put:
+      tags:
+      - usuario
+      description: |-
+        update the Usuario
+        <br>
+      operationId: UsuarioController.Put
+      parameters:
+      - in: path
+        name: id
+        description: The id you want to update
+        required: true
+        type: string
+      - in: body
+        name: body
+        description: body for Usuario content
+        required: true
+        schema:
+          $ref: '#/definitions/models.Usuario'
+      responses:
+        "200":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.Usuario'
+        "403":
+          description: :id is not int
+    delete:
+      tags:
+      - usuario
+      description: |-
+        delete the Usuario
+        <br>
+      operationId: UsuarioController.Delete
+      parameters:
+      - in: path
+        name: id
+        description: The id you want to delete
+        required: true
+        type: string
+      responses:
+        "200":
+          description: '{string} delete success!'
+        "403":
+          description: id is empty
+  /usuario_rol/:
+    get:
+      tags:
+      - usuario_rol
+      description: |-
+        get UsuarioRol
+        <br>
+      operationId: UsuarioRolController.Get All
+      parameters:
+      - in: query
+        name: query
+        description: Filter. e.g. col1:v1,col2:v2 ...
+        type: string
+      - in: query
+        name: fields
+        description: Fields returned. e.g. col1,col2 ...
+        type: string
+      - in: query
+        name: sortby
+        description: Sorted-by fields. e.g. col1,col2 ...
+        type: string
+      - in: query
+        name: order
+        description: Order corresponding to each sortby field, if single value, apply
+          to all sortby fields. e.g. desc,asc ...
+        type: string
+      - in: query
+        name: limit
+        description: Limit the size of result set. Must be an integer
+        type: string
+      - in: query
+        name: offset
+        description: Start position of result set. Must be an integer
+        type: string
+      responses:
+        "200":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.UsuarioRol'
+        "403":
+          description: ""
+    post:
+      tags:
+      - usuario_rol
+      description: |-
+        create UsuarioRol
+        <br>
+      operationId: UsuarioRolController.Post
+      parameters:
+      - in: body
+        name: body
+        description: body for UsuarioRol content
+        required: true
+        schema:
+          $ref: '#/definitions/models.UsuarioRol'
+      responses:
+        "201":
+          description: '{int} models.UsuarioRol'
+        "403":
+          description: body is empty
+  /usuario_rol/{id}:
+    get:
+      tags:
+      - usuario_rol
+      description: |-
+        get UsuarioRol by id
+        <br>
+      operationId: UsuarioRolController.Get One
+      parameters:
+      - in: path
+        name: id
+        description: The key for staticblock
+        required: true
+        type: string
+      responses:
+        "200":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.UsuarioRol'
+        "403":
+          description: :id is empty
+    put:
+      tags:
+      - usuario_rol
+      description: |-
+        update the UsuarioRol
+        <br>
+      operationId: UsuarioRolController.Put
+      parameters:
+      - in: path
+        name: id
+        description: The id you want to update
+        required: true
+        type: string
+      - in: body
+        name: body
+        description: body for UsuarioRol content
+        required: true
+        schema:
+          $ref: '#/definitions/models.UsuarioRol'
+      responses:
+        "200":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.UsuarioRol'
+        "403":
+          description: :id is not int
+    delete:
+      tags:
+      - usuario_rol
+      description: |-
+        delete the UsuarioRol
+        <br>
+      operationId: UsuarioRolController.Delete
+      parameters:
+      - in: path
+        name: id
+        description: The id you want to delete
+        required: true
+        type: string
+      responses:
+        "200":
+          description: '{string} delete success!'
+        "403":
+          description: id is empty
+definitions:
+  models.AuditoriaLogin:
+    title: AuditoriaLogin
+    type: object
+    properties:
+      EstadoEvento:
+        type: string
+      FechaCreacion:
+        type: string
+        format: datetime
+      FechaEvento:
+        type: string
+        format: datetime
+      Id:
+        type: integer
+        format: int64
+      IdUsuario:
+        $ref: '#/definitions/models.Usuario'
+      IpAddress:
+        type: string
+      Navegador:
+        type: string
+      TipoEvento:
+        type: string
+  models.Credencial:
+    title: Credencial
+    type: object
+    properties:
+      Activo:
+        type: boolean
+      Algoritmo:
+        type: string
+      BloqueadoHasta:
+        type: string
+        format: datetime
+      ContrasenaHash:
+        type: string
+      FechaActualizacion:
+        type: string
+        format: datetime
+      FechaCreacion:
+        type: string
+        format: datetime
+      FechaModificacion:
+        type: string
+        format: datetime
+      FechaUltimoCambio:
+        type: string
+        format: datetime
+      Id:
+        type: integer
+        format: int64
+      IdUsuario:
+        $ref: '#/definitions/models.Usuario'
+      IntentosFallidos:
+        type: integer
+        format: int64
+      RequiereCambio:
+        type: boolean
+      Salt:
+        type: string
+  models.Rol:
+    title: Rol
+    type: object
+    properties:
+      Activo:
+        type: boolean
+      Descripcion:
+        type: string
+      FechaCreacion:
+        type: string
+        format: datetime
+      FechaModificacion:
+        type: string
+        format: datetime
+      Id:
+        type: integer
+        format: int64
+      NombreRol:
+        type: string
+  models.TipoDocumento:
+    title: TipoDocumento
+    type: object
+    properties:
+      Activo:
+        type: boolean
+      Codigo:
+        type: string
+      FechaCreacion:
+        type: string
+        format: datetime
+      FechaModificacion:
+        type: string
+        format: datetime
+      Id:
+        type: integer
+        format: int64
+      Nombre:
+        type: string
+  models.Usuario:
+    title: Usuario
+    type: object
+    properties:
+      Activo:
+        type: boolean
+      Apellido:
+        type: string
+      Cedula:
+        type: string
+      Ciudad:
+        type: string
+      Direccion:
+        type: string
+      Email:
+        type: string
+      Estado:
+        type: string
+      FechaCreacion:
+        type: string
+        format: datetime
+      FechaModificacion:
+        type: string
+        format: datetime
+      FechaNacimiento:
+        type: string
+        format: datetime
+      FechaRegistro:
+        type: string
+        format: datetime
+      FechaUltimaSesion:
+        type: string
+        format: datetime
+      Id:
+        type: integer
+        format: int64
+      Nombre:
+        type: string
+      Telefono:
+        type: string
+      TipoDocumento:
+        $ref: '#/definitions/models.TipoDocumento'
+  models.UsuarioRol:
+    title: UsuarioRol
+    type: object
+    properties:
+      Activo:
+        type: boolean
+      FechaAsignacion:
+        type: string
+        format: datetime
+      FechaCreacion:
+        type: string
+        format: datetime
+      FechaModificacion:
+        type: string
+        format: datetime
+      Id:
+        type: integer
+        format: int64
+      IdRol:
+        $ref: '#/definitions/models.Rol'
+      IdUsuario:
+        $ref: '#/definitions/models.Usuario'
+tags:
+- name: auditoria_login
+  description: |
+    AuditoriaLoginController operations for AuditoriaLogin
+- name: rol
+  description: |
+    RolController operations for Rol
+- name: tipo_documento
+  description: |
+    TipoDocumentoController operations for TipoDocumento
+- name: usuario
+  description: |
+    UsuarioController operations for Usuario
+- name: credencial
+  description: |
+    CredencialController operations for Credencial
+- name: usuario_rol
+  description: |
+    UsuarioRolController operations for UsuarioRol

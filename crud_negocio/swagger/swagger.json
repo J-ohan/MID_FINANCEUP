@@ -1,0 +1,1839 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "title": "FinanceUp - crud_negocio",
+        "description": "CRUD del schema negocio de la base de datos financeup\n",
+        "version": "1.0.0",
+        "contact": {},
+        "license": {
+            "name": "Apache 2.0",
+            "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+        }
+    },
+    "basePath": "/v1",
+    "paths": {
+        "/asesor_bancario/": {
+            "get": {
+                "tags": [
+                    "asesor_bancario"
+                ],
+                "description": "get AsesorBancario\n\u003cbr\u003e",
+                "operationId": "AsesorBancarioController.Get All",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "query",
+                        "description": "Filter. e.g. col1:v1,col2:v2 ...",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "fields",
+                        "description": "Fields returned. e.g. col1,col2 ...",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "sortby",
+                        "description": "Sorted-by fields. e.g. col1,col2 ...",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "order",
+                        "description": "Order corresponding to each sortby field, if single value, apply to all sortby fields. e.g. desc,asc ...",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "limit",
+                        "description": "Limit the size of result set. Must be an integer",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "offset",
+                        "description": "Start position of result set. Must be an integer",
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.AsesorBancario"
+                        }
+                    },
+                    "403": {
+                        "description": ""
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "asesor_bancario"
+                ],
+                "description": "create AsesorBancario\n\u003cbr\u003e",
+                "operationId": "AsesorBancarioController.Post",
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "body for AsesorBancario content",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.AsesorBancario"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "{int} models.AsesorBancario"
+                    },
+                    "403": {
+                        "description": "body is empty"
+                    }
+                }
+            }
+        },
+        "/asesor_bancario/{id}": {
+            "get": {
+                "tags": [
+                    "asesor_bancario"
+                ],
+                "description": "get AsesorBancario by id\n\u003cbr\u003e",
+                "operationId": "AsesorBancarioController.Get One",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "description": "The key for staticblock",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.AsesorBancario"
+                        }
+                    },
+                    "403": {
+                        "description": ":id is empty"
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "asesor_bancario"
+                ],
+                "description": "update the AsesorBancario\n\u003cbr\u003e",
+                "operationId": "AsesorBancarioController.Put",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "description": "The id you want to update",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "body for AsesorBancario content",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.AsesorBancario"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.AsesorBancario"
+                        }
+                    },
+                    "403": {
+                        "description": ":id is not int"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "asesor_bancario"
+                ],
+                "description": "delete the AsesorBancario\n\u003cbr\u003e",
+                "operationId": "AsesorBancarioController.Delete",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "description": "The id you want to delete",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "{string} delete success!"
+                    },
+                    "403": {
+                        "description": "id is empty"
+                    }
+                }
+            }
+        },
+        "/banco/": {
+            "get": {
+                "tags": [
+                    "banco"
+                ],
+                "description": "get Banco\n\u003cbr\u003e",
+                "operationId": "BancoController.Get All",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "query",
+                        "description": "Filter. e.g. col1:v1,col2:v2 ...",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "fields",
+                        "description": "Fields returned. e.g. col1,col2 ...",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "sortby",
+                        "description": "Sorted-by fields. e.g. col1,col2 ...",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "order",
+                        "description": "Order corresponding to each sortby field, if single value, apply to all sortby fields. e.g. desc,asc ...",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "limit",
+                        "description": "Limit the size of result set. Must be an integer",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "offset",
+                        "description": "Start position of result set. Must be an integer",
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.Banco"
+                        }
+                    },
+                    "403": {
+                        "description": ""
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "banco"
+                ],
+                "description": "create Banco\n\u003cbr\u003e",
+                "operationId": "BancoController.Post",
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "body for Banco content",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.Banco"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "{int} models.Banco"
+                    },
+                    "403": {
+                        "description": "body is empty"
+                    }
+                }
+            }
+        },
+        "/banco/{id}": {
+            "get": {
+                "tags": [
+                    "banco"
+                ],
+                "description": "get Banco by id\n\u003cbr\u003e",
+                "operationId": "BancoController.Get One",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "description": "The key for staticblock",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.Banco"
+                        }
+                    },
+                    "403": {
+                        "description": ":id is empty"
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "banco"
+                ],
+                "description": "update the Banco\n\u003cbr\u003e",
+                "operationId": "BancoController.Put",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "description": "The id you want to update",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "body for Banco content",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.Banco"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.Banco"
+                        }
+                    },
+                    "403": {
+                        "description": ":id is not int"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "banco"
+                ],
+                "description": "delete the Banco\n\u003cbr\u003e",
+                "operationId": "BancoController.Delete",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "description": "The id you want to delete",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "{string} delete success!"
+                    },
+                    "403": {
+                        "description": "id is empty"
+                    }
+                }
+            }
+        },
+        "/contacto_asesor/": {
+            "get": {
+                "tags": [
+                    "contacto_asesor"
+                ],
+                "description": "get ContactoAsesor\n\u003cbr\u003e",
+                "operationId": "ContactoAsesorController.Get All",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "query",
+                        "description": "Filter. e.g. col1:v1,col2:v2 ...",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "fields",
+                        "description": "Fields returned. e.g. col1,col2 ...",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "sortby",
+                        "description": "Sorted-by fields. e.g. col1,col2 ...",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "order",
+                        "description": "Order corresponding to each sortby field, if single value, apply to all sortby fields. e.g. desc,asc ...",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "limit",
+                        "description": "Limit the size of result set. Must be an integer",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "offset",
+                        "description": "Start position of result set. Must be an integer",
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.ContactoAsesor"
+                        }
+                    },
+                    "403": {
+                        "description": ""
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "contacto_asesor"
+                ],
+                "description": "create ContactoAsesor\n\u003cbr\u003e",
+                "operationId": "ContactoAsesorController.Post",
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "body for ContactoAsesor content",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.ContactoAsesor"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "{int} models.ContactoAsesor"
+                    },
+                    "403": {
+                        "description": "body is empty"
+                    }
+                }
+            }
+        },
+        "/contacto_asesor/{id}": {
+            "get": {
+                "tags": [
+                    "contacto_asesor"
+                ],
+                "description": "get ContactoAsesor by id\n\u003cbr\u003e",
+                "operationId": "ContactoAsesorController.Get One",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "description": "The key for staticblock",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.ContactoAsesor"
+                        }
+                    },
+                    "403": {
+                        "description": ":id is empty"
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "contacto_asesor"
+                ],
+                "description": "update the ContactoAsesor\n\u003cbr\u003e",
+                "operationId": "ContactoAsesorController.Put",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "description": "The id you want to update",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "body for ContactoAsesor content",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.ContactoAsesor"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.ContactoAsesor"
+                        }
+                    },
+                    "403": {
+                        "description": ":id is not int"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "contacto_asesor"
+                ],
+                "description": "delete the ContactoAsesor\n\u003cbr\u003e",
+                "operationId": "ContactoAsesorController.Delete",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "description": "The id you want to delete",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "{string} delete success!"
+                    },
+                    "403": {
+                        "description": "id is empty"
+                    }
+                }
+            }
+        },
+        "/conversacion_usuario_asesor/": {
+            "get": {
+                "tags": [
+                    "conversacion_usuario_asesor"
+                ],
+                "description": "get ConversacionUsuarioAsesor\n\u003cbr\u003e",
+                "operationId": "ConversacionUsuarioAsesorController.Get All",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "query",
+                        "description": "Filter. e.g. col1:v1,col2:v2 ...",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "fields",
+                        "description": "Fields returned. e.g. col1,col2 ...",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "sortby",
+                        "description": "Sorted-by fields. e.g. col1,col2 ...",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "order",
+                        "description": "Order corresponding to each sortby field, if single value, apply to all sortby fields. e.g. desc,asc ...",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "limit",
+                        "description": "Limit the size of result set. Must be an integer",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "offset",
+                        "description": "Start position of result set. Must be an integer",
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.ConversacionUsuarioAsesor"
+                        }
+                    },
+                    "403": {
+                        "description": ""
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "conversacion_usuario_asesor"
+                ],
+                "description": "create ConversacionUsuarioAsesor\n\u003cbr\u003e",
+                "operationId": "ConversacionUsuarioAsesorController.Post",
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "body for ConversacionUsuarioAsesor content",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.ConversacionUsuarioAsesor"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "{int} models.ConversacionUsuarioAsesor"
+                    },
+                    "403": {
+                        "description": "body is empty"
+                    }
+                }
+            }
+        },
+        "/conversacion_usuario_asesor/{id}": {
+            "get": {
+                "tags": [
+                    "conversacion_usuario_asesor"
+                ],
+                "description": "get ConversacionUsuarioAsesor by id\n\u003cbr\u003e",
+                "operationId": "ConversacionUsuarioAsesorController.Get One",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "description": "The key for staticblock",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.ConversacionUsuarioAsesor"
+                        }
+                    },
+                    "403": {
+                        "description": ":id is empty"
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "conversacion_usuario_asesor"
+                ],
+                "description": "update the ConversacionUsuarioAsesor\n\u003cbr\u003e",
+                "operationId": "ConversacionUsuarioAsesorController.Put",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "description": "The id you want to update",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "body for ConversacionUsuarioAsesor content",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.ConversacionUsuarioAsesor"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.ConversacionUsuarioAsesor"
+                        }
+                    },
+                    "403": {
+                        "description": ":id is not int"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "conversacion_usuario_asesor"
+                ],
+                "description": "delete the ConversacionUsuarioAsesor\n\u003cbr\u003e",
+                "operationId": "ConversacionUsuarioAsesorController.Delete",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "description": "The id you want to delete",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "{string} delete success!"
+                    },
+                    "403": {
+                        "description": "id is empty"
+                    }
+                }
+            }
+        },
+        "/credito_desembolsado/": {
+            "get": {
+                "tags": [
+                    "credito_desembolsado"
+                ],
+                "description": "get CreditoDesembolsado\n\u003cbr\u003e",
+                "operationId": "CreditoDesembolsadoController.Get All",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "query",
+                        "description": "Filter. e.g. col1:v1,col2:v2 ...",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "fields",
+                        "description": "Fields returned. e.g. col1,col2 ...",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "sortby",
+                        "description": "Sorted-by fields. e.g. col1,col2 ...",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "order",
+                        "description": "Order corresponding to each sortby field, if single value, apply to all sortby fields. e.g. desc,asc ...",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "limit",
+                        "description": "Limit the size of result set. Must be an integer",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "offset",
+                        "description": "Start position of result set. Must be an integer",
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.CreditoDesembolsado"
+                        }
+                    },
+                    "403": {
+                        "description": ""
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "credito_desembolsado"
+                ],
+                "description": "create CreditoDesembolsado\n\u003cbr\u003e",
+                "operationId": "CreditoDesembolsadoController.Post",
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "body for CreditoDesembolsado content",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.CreditoDesembolsado"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "{int} models.CreditoDesembolsado"
+                    },
+                    "403": {
+                        "description": "body is empty"
+                    }
+                }
+            }
+        },
+        "/credito_desembolsado/{id}": {
+            "get": {
+                "tags": [
+                    "credito_desembolsado"
+                ],
+                "description": "get CreditoDesembolsado by id\n\u003cbr\u003e",
+                "operationId": "CreditoDesembolsadoController.Get One",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "description": "The key for staticblock",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.CreditoDesembolsado"
+                        }
+                    },
+                    "403": {
+                        "description": ":id is empty"
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "credito_desembolsado"
+                ],
+                "description": "update the CreditoDesembolsado\n\u003cbr\u003e",
+                "operationId": "CreditoDesembolsadoController.Put",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "description": "The id you want to update",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "body for CreditoDesembolsado content",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.CreditoDesembolsado"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.CreditoDesembolsado"
+                        }
+                    },
+                    "403": {
+                        "description": ":id is not int"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "credito_desembolsado"
+                ],
+                "description": "delete the CreditoDesembolsado\n\u003cbr\u003e",
+                "operationId": "CreditoDesembolsadoController.Delete",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "description": "The id you want to delete",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "{string} delete success!"
+                    },
+                    "403": {
+                        "description": "id is empty"
+                    }
+                }
+            }
+        },
+        "/lead/": {
+            "get": {
+                "tags": [
+                    "lead"
+                ],
+                "description": "get Lead\n\u003cbr\u003e",
+                "operationId": "LeadController.Get All",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "query",
+                        "description": "Filter. e.g. col1:v1,col2:v2 ...",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "fields",
+                        "description": "Fields returned. e.g. col1,col2 ...",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "sortby",
+                        "description": "Sorted-by fields. e.g. col1,col2 ...",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "order",
+                        "description": "Order corresponding to each sortby field, if single value, apply to all sortby fields. e.g. desc,asc ...",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "limit",
+                        "description": "Limit the size of result set. Must be an integer",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "offset",
+                        "description": "Start position of result set. Must be an integer",
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.Lead"
+                        }
+                    },
+                    "403": {
+                        "description": ""
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "lead"
+                ],
+                "description": "create Lead\n\u003cbr\u003e",
+                "operationId": "LeadController.Post",
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "body for Lead content",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.Lead"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "{int} models.Lead"
+                    },
+                    "403": {
+                        "description": "body is empty"
+                    }
+                }
+            }
+        },
+        "/lead/{id}": {
+            "get": {
+                "tags": [
+                    "lead"
+                ],
+                "description": "get Lead by id\n\u003cbr\u003e",
+                "operationId": "LeadController.Get One",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "description": "The key for staticblock",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.Lead"
+                        }
+                    },
+                    "403": {
+                        "description": ":id is empty"
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "lead"
+                ],
+                "description": "update the Lead\n\u003cbr\u003e",
+                "operationId": "LeadController.Put",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "description": "The id you want to update",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "body for Lead content",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.Lead"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.Lead"
+                        }
+                    },
+                    "403": {
+                        "description": ":id is not int"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "lead"
+                ],
+                "description": "delete the Lead\n\u003cbr\u003e",
+                "operationId": "LeadController.Delete",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "description": "The id you want to delete",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "{string} delete success!"
+                    },
+                    "403": {
+                        "description": "id is empty"
+                    }
+                }
+            }
+        },
+        "/producto_crediticio/": {
+            "get": {
+                "tags": [
+                    "producto_crediticio"
+                ],
+                "description": "get ProductoCrediticio\n\u003cbr\u003e",
+                "operationId": "ProductoCrediticioController.Get All",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "query",
+                        "description": "Filter. e.g. col1:v1,col2:v2 ...",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "fields",
+                        "description": "Fields returned. e.g. col1,col2 ...",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "sortby",
+                        "description": "Sorted-by fields. e.g. col1,col2 ...",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "order",
+                        "description": "Order corresponding to each sortby field, if single value, apply to all sortby fields. e.g. desc,asc ...",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "limit",
+                        "description": "Limit the size of result set. Must be an integer",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "offset",
+                        "description": "Start position of result set. Must be an integer",
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.ProductoCrediticio"
+                        }
+                    },
+                    "403": {
+                        "description": ""
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "producto_crediticio"
+                ],
+                "description": "create ProductoCrediticio\n\u003cbr\u003e",
+                "operationId": "ProductoCrediticioController.Post",
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "body for ProductoCrediticio content",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.ProductoCrediticio"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "{int} models.ProductoCrediticio"
+                    },
+                    "403": {
+                        "description": "body is empty"
+                    }
+                }
+            }
+        },
+        "/producto_crediticio/{id}": {
+            "get": {
+                "tags": [
+                    "producto_crediticio"
+                ],
+                "description": "get ProductoCrediticio by id\n\u003cbr\u003e",
+                "operationId": "ProductoCrediticioController.Get One",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "description": "The key for staticblock",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.ProductoCrediticio"
+                        }
+                    },
+                    "403": {
+                        "description": ":id is empty"
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "producto_crediticio"
+                ],
+                "description": "update the ProductoCrediticio\n\u003cbr\u003e",
+                "operationId": "ProductoCrediticioController.Put",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "description": "The id you want to update",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "body for ProductoCrediticio content",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.ProductoCrediticio"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.ProductoCrediticio"
+                        }
+                    },
+                    "403": {
+                        "description": ":id is not int"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "producto_crediticio"
+                ],
+                "description": "delete the ProductoCrediticio\n\u003cbr\u003e",
+                "operationId": "ProductoCrediticioController.Delete",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "description": "The id you want to delete",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "{string} delete success!"
+                    },
+                    "403": {
+                        "description": "id is empty"
+                    }
+                }
+            }
+        },
+        "/transaccion_comision/": {
+            "get": {
+                "tags": [
+                    "transaccion_comision"
+                ],
+                "description": "get TransaccionComision\n\u003cbr\u003e",
+                "operationId": "TransaccionComisionController.Get All",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "query",
+                        "description": "Filter. e.g. col1:v1,col2:v2 ...",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "fields",
+                        "description": "Fields returned. e.g. col1,col2 ...",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "sortby",
+                        "description": "Sorted-by fields. e.g. col1,col2 ...",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "order",
+                        "description": "Order corresponding to each sortby field, if single value, apply to all sortby fields. e.g. desc,asc ...",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "limit",
+                        "description": "Limit the size of result set. Must be an integer",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "offset",
+                        "description": "Start position of result set. Must be an integer",
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.TransaccionComision"
+                        }
+                    },
+                    "403": {
+                        "description": ""
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "transaccion_comision"
+                ],
+                "description": "create TransaccionComision\n\u003cbr\u003e",
+                "operationId": "TransaccionComisionController.Post",
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "body for TransaccionComision content",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.TransaccionComision"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "{int} models.TransaccionComision"
+                    },
+                    "403": {
+                        "description": "body is empty"
+                    }
+                }
+            }
+        },
+        "/transaccion_comision/{id}": {
+            "get": {
+                "tags": [
+                    "transaccion_comision"
+                ],
+                "description": "get TransaccionComision by id\n\u003cbr\u003e",
+                "operationId": "TransaccionComisionController.Get One",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "description": "The key for staticblock",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.TransaccionComision"
+                        }
+                    },
+                    "403": {
+                        "description": ":id is empty"
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "transaccion_comision"
+                ],
+                "description": "update the TransaccionComision\n\u003cbr\u003e",
+                "operationId": "TransaccionComisionController.Put",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "description": "The id you want to update",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "body for TransaccionComision content",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.TransaccionComision"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.TransaccionComision"
+                        }
+                    },
+                    "403": {
+                        "description": ":id is not int"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "transaccion_comision"
+                ],
+                "description": "delete the TransaccionComision\n\u003cbr\u003e",
+                "operationId": "TransaccionComisionController.Delete",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "description": "The id you want to delete",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "{string} delete success!"
+                    },
+                    "403": {
+                        "description": "id is empty"
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "models.AsesorBancario": {
+            "title": "AsesorBancario",
+            "type": "object",
+            "properties": {
+                "Activo": {
+                    "type": "boolean"
+                },
+                "Apellido": {
+                    "type": "string"
+                },
+                "Email": {
+                    "type": "string"
+                },
+                "Especialidad": {
+                    "type": "string"
+                },
+                "FechaCreacion": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "FechaModificacion": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "Id": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "IdBanco": {
+                    "$ref": "#/definitions/models.Banco"
+                },
+                "Nombre": {
+                    "type": "string"
+                },
+                "Telefono": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.Banco": {
+            "title": "Banco",
+            "type": "object",
+            "properties": {
+                "Activo": {
+                    "type": "boolean"
+                },
+                "Ciudad": {
+                    "type": "string"
+                },
+                "ComisionPorcentaje": {
+                    "type": "number",
+                    "format": "double"
+                },
+                "Contacto": {
+                    "type": "string"
+                },
+                "Descripcion": {
+                    "type": "string"
+                },
+                "Email": {
+                    "type": "string"
+                },
+                "Estado": {
+                    "type": "string"
+                },
+                "FechaCreacion": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "FechaModificacion": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "FechaRegistro": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "Id": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "NombreBanco": {
+                    "type": "string"
+                },
+                "SitioWeb": {
+                    "type": "string"
+                },
+                "Telefono": {
+                    "type": "string"
+                },
+                "UrlLogo": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.ContactoAsesor": {
+            "title": "ContactoAsesor",
+            "type": "object",
+            "properties": {
+                "Activo": {
+                    "type": "boolean"
+                },
+                "DiasDisponibles": {
+                    "type": "string"
+                },
+                "DisponibleDesde": {
+                    "type": "string"
+                },
+                "DisponibleHasta": {
+                    "type": "string"
+                },
+                "Email": {
+                    "type": "string"
+                },
+                "FechaCreacion": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "FechaModificacion": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "Id": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "IdAsesor": {
+                    "$ref": "#/definitions/models.AsesorBancario"
+                },
+                "Telefono": {
+                    "type": "string"
+                },
+                "Whatsapp": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.ConversacionUsuarioAsesor": {
+            "title": "ConversacionUsuarioAsesor",
+            "type": "object",
+            "properties": {
+                "Activo": {
+                    "type": "boolean"
+                },
+                "Asunto": {
+                    "type": "string"
+                },
+                "Contenido": {
+                    "type": "string"
+                },
+                "FechaCreacion": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "FechaMensaje": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "FechaModificacion": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "Id": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "IdAsesor": {
+                    "$ref": "#/definitions/models.AsesorBancario"
+                },
+                "IdLead": {
+                    "$ref": "#/definitions/models.Lead"
+                },
+                "IdUsuario": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "TipoContacto": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.CreditoDesembolsado": {
+            "title": "CreditoDesembolsado",
+            "type": "object",
+            "properties": {
+                "Activo": {
+                    "type": "boolean"
+                },
+                "EstadoCredito": {
+                    "type": "string"
+                },
+                "FechaAprobacion": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "FechaCreacion": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "FechaDesembolso": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "FechaModificacion": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "Id": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "IdBanco": {
+                    "$ref": "#/definitions/models.Banco"
+                },
+                "IdLead": {
+                    "$ref": "#/definitions/models.Lead"
+                },
+                "IdProducto": {
+                    "$ref": "#/definitions/models.ProductoCrediticio"
+                },
+                "IdUsuario": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "MontoAprobado": {
+                    "type": "number",
+                    "format": "double"
+                },
+                "NumeroCredito": {
+                    "type": "string"
+                },
+                "PlazoMeses": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "SaldoActual": {
+                    "type": "number",
+                    "format": "double"
+                },
+                "TasaInteresFinal": {
+                    "type": "number",
+                    "format": "double"
+                }
+            }
+        },
+        "models.Lead": {
+            "title": "Lead",
+            "type": "object",
+            "properties": {
+                "Activo": {
+                    "type": "boolean"
+                },
+                "EstadoLead": {
+                    "type": "string"
+                },
+                "FechaContacto": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "FechaCreacion": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "FechaGeneracion": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "FechaModificacion": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "Id": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "IdAsesor": {
+                    "$ref": "#/definitions/models.AsesorBancario"
+                },
+                "IdProducto": {
+                    "$ref": "#/definitions/models.ProductoCrediticio"
+                },
+                "IdUsuario": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "MontoInteres": {
+                    "type": "number",
+                    "format": "double"
+                },
+                "Observaciones": {
+                    "type": "string"
+                },
+                "PlazoInteres": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "TipoCredito": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.ProductoCrediticio": {
+            "title": "ProductoCrediticio",
+            "type": "object",
+            "properties": {
+                "Activo": {
+                    "type": "boolean"
+                },
+                "Descripcion": {
+                    "type": "string"
+                },
+                "FechaCreacion": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "FechaModificacion": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "Id": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "IdBanco": {
+                    "$ref": "#/definitions/models.Banco"
+                },
+                "MontoMaximo": {
+                    "type": "number",
+                    "format": "double"
+                },
+                "MontoMinimo": {
+                    "type": "number",
+                    "format": "double"
+                },
+                "NombreProducto": {
+                    "type": "string"
+                },
+                "PlazoMaximo": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "PlazoMinimo": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "Requisitos": {
+                    "type": "string"
+                },
+                "TasaMaxima": {
+                    "type": "number",
+                    "format": "double"
+                },
+                "TasaMinima": {
+                    "type": "number",
+                    "format": "double"
+                }
+            }
+        },
+        "models.TransaccionComision": {
+            "title": "TransaccionComision",
+            "type": "object",
+            "properties": {
+                "Activo": {
+                    "type": "boolean"
+                },
+                "Estado": {
+                    "type": "string"
+                },
+                "FechaCreacion": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "FechaModificacion": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "FechaTransaccion": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "Id": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "IdBanco": {
+                    "$ref": "#/definitions/models.Banco"
+                },
+                "IdCredito": {
+                    "$ref": "#/definitions/models.CreditoDesembolsado"
+                },
+                "MontoComision": {
+                    "type": "number",
+                    "format": "double"
+                },
+                "PorcentajeAplicado": {
+                    "type": "number",
+                    "format": "double"
+                },
+                "ReferenciaPago": {
+                    "type": "string"
+                }
+            }
+        }
+    },
+    "tags": [
+        {
+            "name": "banco",
+            "description": "BancoController operations for Banco\n"
+        },
+        {
+            "name": "producto_crediticio",
+            "description": "ProductoCrediticioController operations for ProductoCrediticio\n"
+        },
+        {
+            "name": "asesor_bancario",
+            "description": "AsesorBancarioController operations for AsesorBancario\n"
+        },
+        {
+            "name": "contacto_asesor",
+            "description": "ContactoAsesorController operations for ContactoAsesor\n"
+        },
+        {
+            "name": "lead",
+            "description": "LeadController operations for Lead\n"
+        },
+        {
+            "name": "conversacion_usuario_asesor",
+            "description": "ConversacionUsuarioAsesorController operations for ConversacionUsuarioAsesor\n"
+        },
+        {
+            "name": "credito_desembolsado",
+            "description": "CreditoDesembolsadoController operations for CreditoDesembolsado\n"
+        },
+        {
+            "name": "transaccion_comision",
+            "description": "TransaccionComisionController operations for TransaccionComision\n"
+        }
+    ]
+}

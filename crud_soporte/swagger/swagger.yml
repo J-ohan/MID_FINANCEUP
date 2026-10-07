@@ -1,0 +1,631 @@
+swagger: "2.0"
+info:
+  title: FinanceUp - crud_soporte
+  description: |
+    CRUD del schema soporte de la base de datos financeup
+  version: 1.0.0
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+basePath: /v1
+paths:
+  /adjunto/:
+    get:
+      tags:
+      - adjunto
+      description: |-
+        get Adjunto
+        <br>
+      operationId: AdjuntoController.Get All
+      parameters:
+      - in: query
+        name: query
+        description: Filter. e.g. col1:v1,col2:v2 ...
+        type: string
+      - in: query
+        name: fields
+        description: Fields returned. e.g. col1,col2 ...
+        type: string
+      - in: query
+        name: sortby
+        description: Sorted-by fields. e.g. col1,col2 ...
+        type: string
+      - in: query
+        name: order
+        description: Order corresponding to each sortby field, if single value, apply
+          to all sortby fields. e.g. desc,asc ...
+        type: string
+      - in: query
+        name: limit
+        description: Limit the size of result set. Must be an integer
+        type: string
+      - in: query
+        name: offset
+        description: Start position of result set. Must be an integer
+        type: string
+      responses:
+        "200":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.Adjunto'
+        "403":
+          description: ""
+    post:
+      tags:
+      - adjunto
+      description: |-
+        create Adjunto
+        <br>
+      operationId: AdjuntoController.Post
+      parameters:
+      - in: body
+        name: body
+        description: body for Adjunto content
+        required: true
+        schema:
+          $ref: '#/definitions/models.Adjunto'
+      responses:
+        "201":
+          description: '{int} models.Adjunto'
+        "403":
+          description: body is empty
+  /adjunto/{id}:
+    get:
+      tags:
+      - adjunto
+      description: |-
+        get Adjunto by id
+        <br>
+      operationId: AdjuntoController.Get One
+      parameters:
+      - in: path
+        name: id
+        description: The key for staticblock
+        required: true
+        type: string
+      responses:
+        "200":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.Adjunto'
+        "403":
+          description: :id is empty
+    put:
+      tags:
+      - adjunto
+      description: |-
+        update the Adjunto
+        <br>
+      operationId: AdjuntoController.Put
+      parameters:
+      - in: path
+        name: id
+        description: The id you want to update
+        required: true
+        type: string
+      - in: body
+        name: body
+        description: body for Adjunto content
+        required: true
+        schema:
+          $ref: '#/definitions/models.Adjunto'
+      responses:
+        "200":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.Adjunto'
+        "403":
+          description: :id is not int
+    delete:
+      tags:
+      - adjunto
+      description: |-
+        delete the Adjunto
+        <br>
+      operationId: AdjuntoController.Delete
+      parameters:
+      - in: path
+        name: id
+        description: The id you want to delete
+        required: true
+        type: string
+      responses:
+        "200":
+          description: '{string} delete success!'
+        "403":
+          description: id is empty
+  /estado_pqr/:
+    get:
+      tags:
+      - estado_pqr
+      description: |-
+        get EstadoPqr
+        <br>
+      operationId: EstadoPqrController.Get All
+      parameters:
+      - in: query
+        name: query
+        description: Filter. e.g. col1:v1,col2:v2 ...
+        type: string
+      - in: query
+        name: fields
+        description: Fields returned. e.g. col1,col2 ...
+        type: string
+      - in: query
+        name: sortby
+        description: Sorted-by fields. e.g. col1,col2 ...
+        type: string
+      - in: query
+        name: order
+        description: Order corresponding to each sortby field, if single value, apply
+          to all sortby fields. e.g. desc,asc ...
+        type: string
+      - in: query
+        name: limit
+        description: Limit the size of result set. Must be an integer
+        type: string
+      - in: query
+        name: offset
+        description: Start position of result set. Must be an integer
+        type: string
+      responses:
+        "200":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.EstadoPqr'
+        "403":
+          description: ""
+    post:
+      tags:
+      - estado_pqr
+      description: |-
+        create EstadoPqr
+        <br>
+      operationId: EstadoPqrController.Post
+      parameters:
+      - in: body
+        name: body
+        description: body for EstadoPqr content
+        required: true
+        schema:
+          $ref: '#/definitions/models.EstadoPqr'
+      responses:
+        "201":
+          description: '{int} models.EstadoPqr'
+        "403":
+          description: body is empty
+  /estado_pqr/{id}:
+    get:
+      tags:
+      - estado_pqr
+      description: |-
+        get EstadoPqr by id
+        <br>
+      operationId: EstadoPqrController.Get One
+      parameters:
+      - in: path
+        name: id
+        description: The key for staticblock
+        required: true
+        type: string
+      responses:
+        "200":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.EstadoPqr'
+        "403":
+          description: :id is empty
+    put:
+      tags:
+      - estado_pqr
+      description: |-
+        update the EstadoPqr
+        <br>
+      operationId: EstadoPqrController.Put
+      parameters:
+      - in: path
+        name: id
+        description: The id you want to update
+        required: true
+        type: string
+      - in: body
+        name: body
+        description: body for EstadoPqr content
+        required: true
+        schema:
+          $ref: '#/definitions/models.EstadoPqr'
+      responses:
+        "200":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.EstadoPqr'
+        "403":
+          description: :id is not int
+    delete:
+      tags:
+      - estado_pqr
+      description: |-
+        delete the EstadoPqr
+        <br>
+      operationId: EstadoPqrController.Delete
+      parameters:
+      - in: path
+        name: id
+        description: The id you want to delete
+        required: true
+        type: string
+      responses:
+        "200":
+          description: '{string} delete success!'
+        "403":
+          description: id is empty
+  /pqr/:
+    get:
+      tags:
+      - pqr
+      description: |-
+        get Pqr
+        <br>
+      operationId: PqrController.Get All
+      parameters:
+      - in: query
+        name: query
+        description: Filter. e.g. col1:v1,col2:v2 ...
+        type: string
+      - in: query
+        name: fields
+        description: Fields returned. e.g. col1,col2 ...
+        type: string
+      - in: query
+        name: sortby
+        description: Sorted-by fields. e.g. col1,col2 ...
+        type: string
+      - in: query
+        name: order
+        description: Order corresponding to each sortby field, if single value, apply
+          to all sortby fields. e.g. desc,asc ...
+        type: string
+      - in: query
+        name: limit
+        description: Limit the size of result set. Must be an integer
+        type: string
+      - in: query
+        name: offset
+        description: Start position of result set. Must be an integer
+        type: string
+      responses:
+        "200":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.Pqr'
+        "403":
+          description: ""
+    post:
+      tags:
+      - pqr
+      description: |-
+        create Pqr
+        <br>
+      operationId: PqrController.Post
+      parameters:
+      - in: body
+        name: body
+        description: body for Pqr content
+        required: true
+        schema:
+          $ref: '#/definitions/models.Pqr'
+      responses:
+        "201":
+          description: '{int} models.Pqr'
+        "403":
+          description: body is empty
+  /pqr/{id}:
+    get:
+      tags:
+      - pqr
+      description: |-
+        get Pqr by id
+        <br>
+      operationId: PqrController.Get One
+      parameters:
+      - in: path
+        name: id
+        description: The key for staticblock
+        required: true
+        type: string
+      responses:
+        "200":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.Pqr'
+        "403":
+          description: :id is empty
+    put:
+      tags:
+      - pqr
+      description: |-
+        update the Pqr
+        <br>
+      operationId: PqrController.Put
+      parameters:
+      - in: path
+        name: id
+        description: The id you want to update
+        required: true
+        type: string
+      - in: body
+        name: body
+        description: body for Pqr content
+        required: true
+        schema:
+          $ref: '#/definitions/models.Pqr'
+      responses:
+        "200":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.Pqr'
+        "403":
+          description: :id is not int
+    delete:
+      tags:
+      - pqr
+      description: |-
+        delete the Pqr
+        <br>
+      operationId: PqrController.Delete
+      parameters:
+      - in: path
+        name: id
+        description: The id you want to delete
+        required: true
+        type: string
+      responses:
+        "200":
+          description: '{string} delete success!'
+        "403":
+          description: id is empty
+  /registro_actividad/:
+    get:
+      tags:
+      - registro_actividad
+      description: |-
+        get RegistroActividad
+        <br>
+      operationId: RegistroActividadController.Get All
+      parameters:
+      - in: query
+        name: query
+        description: Filter. e.g. col1:v1,col2:v2 ...
+        type: string
+      - in: query
+        name: fields
+        description: Fields returned. e.g. col1,col2 ...
+        type: string
+      - in: query
+        name: sortby
+        description: Sorted-by fields. e.g. col1,col2 ...
+        type: string
+      - in: query
+        name: order
+        description: Order corresponding to each sortby field, if single value, apply
+          to all sortby fields. e.g. desc,asc ...
+        type: string
+      - in: query
+        name: limit
+        description: Limit the size of result set. Must be an integer
+        type: string
+      - in: query
+        name: offset
+        description: Start position of result set. Must be an integer
+        type: string
+      responses:
+        "200":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.RegistroActividad'
+        "403":
+          description: ""
+    post:
+      tags:
+      - registro_actividad
+      description: |-
+        create RegistroActividad
+        <br>
+      operationId: RegistroActividadController.Post
+      parameters:
+      - in: body
+        name: body
+        description: body for RegistroActividad content
+        required: true
+        schema:
+          $ref: '#/definitions/models.RegistroActividad'
+      responses:
+        "201":
+          description: '{int} models.RegistroActividad'
+        "403":
+          description: body is empty
+  /registro_actividad/{id}:
+    get:
+      tags:
+      - registro_actividad
+      description: |-
+        get RegistroActividad by id
+        <br>
+      operationId: RegistroActividadController.Get One
+      parameters:
+      - in: path
+        name: id
+        description: The key for staticblock
+        required: true
+        type: string
+      responses:
+        "200":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.RegistroActividad'
+        "403":
+          description: :id is empty
+    put:
+      tags:
+      - registro_actividad
+      description: |-
+        update the RegistroActividad
+        <br>
+      operationId: RegistroActividadController.Put
+      parameters:
+      - in: path
+        name: id
+        description: The id you want to update
+        required: true
+        type: string
+      - in: body
+        name: body
+        description: body for RegistroActividad content
+        required: true
+        schema:
+          $ref: '#/definitions/models.RegistroActividad'
+      responses:
+        "200":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.RegistroActividad'
+        "403":
+          description: :id is not int
+    delete:
+      tags:
+      - registro_actividad
+      description: |-
+        delete the RegistroActividad
+        <br>
+      operationId: RegistroActividadController.Delete
+      parameters:
+      - in: path
+        name: id
+        description: The id you want to delete
+        required: true
+        type: string
+      responses:
+        "200":
+          description: '{string} delete success!'
+        "403":
+          description: id is empty
+definitions:
+  models.Adjunto:
+    title: Adjunto
+    type: object
+    properties:
+      Activo:
+        type: boolean
+      FechaCarga:
+        type: string
+        format: datetime
+      FechaCreacion:
+        type: string
+        format: datetime
+      FechaModificacion:
+        type: string
+        format: datetime
+      Id:
+        type: integer
+        format: int64
+      IdPqr:
+        $ref: '#/definitions/models.Pqr'
+      NombreArchivo:
+        type: string
+      RutaArchivo:
+        type: string
+      TamanoBytes:
+        type: integer
+        format: int64
+      TipoMime:
+        type: string
+  models.EstadoPqr:
+    title: EstadoPqr
+    type: object
+    properties:
+      Activo:
+        type: boolean
+      Descripcion:
+        type: string
+      FechaCreacion:
+        type: string
+        format: datetime
+      FechaModificacion:
+        type: string
+        format: datetime
+      Id:
+        type: integer
+        format: int64
+      Nombre:
+        type: string
+  models.Pqr:
+    title: Pqr
+    type: object
+    properties:
+      Activo:
+        type: boolean
+      Asesor:
+        type: string
+      Categoria:
+        type: string
+      Descripcion:
+        type: string
+      FechaCreacion:
+        type: string
+        format: datetime
+      FechaModificacion:
+        type: string
+        format: datetime
+      Id:
+        type: integer
+        format: int64
+      IdEstado:
+        $ref: '#/definitions/models.EstadoPqr'
+      IdUsuario:
+        type: integer
+        format: int64
+      MensajeRespuesta:
+        type: string
+      Prioridad:
+        type: string
+      Radicado:
+        type: string
+      Tipo:
+        type: string
+      Titulo:
+        type: string
+  models.RegistroActividad:
+    title: RegistroActividad
+    type: object
+    properties:
+      Descripcion:
+        type: string
+      EntidadAfectada:
+        type: string
+      FechaActividad:
+        type: string
+        format: datetime
+      FechaCreacion:
+        type: string
+        format: datetime
+      Id:
+        type: integer
+        format: int64
+      IdUsuario:
+        type: integer
+        format: int64
+      TipoActividad:
+        type: string
+tags:
+- name: adjunto
+  description: |
+    AdjuntoController operations for Adjunto
+- name: registro_actividad
+  description: |
+    RegistroActividadController operations for RegistroActividad
+- name: estado_pqr
+  description: |
+    EstadoPqrController operations for EstadoPqr
+- name: pqr
+  description: |
+    PqrController operations for Pqr
