@@ -1,0 +1,4 @@
+# Copia este archivo con el nombre "conexion_bd.conf" (en esta misma carpeta)
+# y escribe la contrasena de tu PostgreSQL. Ese archivo no se sube a git.
+# Lo leen los 5 CRUD para conectarse a la base de datos financeup.
+db_password = escribe_aqui_tu_contrasena

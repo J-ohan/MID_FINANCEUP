@@ -5,3 +5,5 @@ bd_local/postgres.log
 lastupdate.tmp
 crud.log
 mid.log
+conexion_bd.conf
+crud_err.log
