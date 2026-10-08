@@ -1,5 +1,3 @@
-bd_local/datos/
-bd_local/postgres.log
 *.exe
 *.exe~
 lastupdate.tmp
