@@ -39,3 +39,35 @@ type RegistroActividad struct {
 	Descripcion      *string    `json:"descripcion"`
 	EntidadAfectada  *string    `json:"entidad_afectada"`
 }
+
+const estadoInicialPqr = "Abierta"
+
+// PqrDeUsuario lista las PQR de un usuario con su estado y sus adjuntos.
+func PqrDeUsuario(idUsuario int) ([]models.PqrVista, error) {
+	lista := []models.PqrVista{}
+	if err := ExisteUsuario(idUsuario); err != nil {
+		return lista, err
+	}
+
+	var pqrs []models.Pqr
+	if err := helpers.Consultar("soporte", "pqr?"+helpers.Filtro("id_usuario", idUsuario, "activo", true)+"&sortby=fecha_creacion&order=desc", &pqrs); err != nil {
+		return lista, err
+	}
+	estados, err := estadosPorId()
+	if err != nil {
+		return lista, err
+	}
+
+	for _, p := range pqrs {
+		lista = append(lista, armarPqr(p, estados))
+	}
+	return lista, nil
+}
+
+// CrearPqr valida los datos, genera el numero de radicado y guarda la PQR
+// con el estado "Abierta".
+func CrearPqr(datos models.DatosPqr) (models.PqrVista, error) {
+	datos.Tipo = strings.ToLower(strings.TrimSpace(datos.Tipo))
+	datos.Prioridad = strings.ToLower(strings.TrimSpace(datos.Prioridad))
+	if datos.Prioridad == "" {
+		datos.Prioridad = "media"
