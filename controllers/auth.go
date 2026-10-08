@@ -1,27 +1,26 @@
- package controllers
+package controllers
 
 import (
-	"strings"
-
-	"api-usuarios/models"
-	"api-usuarios/utils"
-
-	"github.com/beego/beego/v2/server/web"
-	"golang.org/x/crypto/bcrypt"
+	"api_mid_financeup/models"
+	"api_mid_financeup/services"
 )
 
+// AuthController atiende perfil, registro e inicio de sesion.
 type AuthController struct {
-	web.Controller
+	BaseController
 }
 
-type RegistroRequest struct {
-	Nombre   string `json:"nombre"`
-	Apellido string `json:"apellido"`
-	Correo   string `json:"correo"`
-	Password string `json:"password"`
-}
-
-type LoginRequest struct {
-	Correo   string `json:"correo"`
-	Password string `json:"password"`
+// ObtenerPerfil GET /v1/perfil/:id
+func (c *AuthController) ObtenerPerfil() {
+	id, err := c.idDeLaRuta("id")
+	if err != nil {
+		c.fallo(err)
+		return
+	}
+	perfil, err := services.ObtenerPerfil(id)
+	if err != nil {
+		c.fallo(err)
+		return
+	}
+	c.ok(200, perfil)
 }
