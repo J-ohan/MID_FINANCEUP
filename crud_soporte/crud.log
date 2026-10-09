@@ -1,0 +1,12 @@
+2026/10/09 07:15:06.046 [1;34m[I][0m [server.go:280]  http server Running on http://:8085
+2026/10/09 07:15:10.576 [1;44m[D][0m [router.go:1305]  |            ::1|[43m 404 [0m|      531.9µs| nomatch|[44m GET     [0m /v1
+2026/10/09 07:15:23.794 [1;44m[D][0m [router.go:1305]  |            ::1|[42m 200 [0m|     5.4998ms|   match|[44m GET     [0m /v1/pqr   r:/v1/pqr/
+2026/10/09 07:15:23.799 [1;44m[D][0m [router.go:1305]  |            ::1|[42m 200 [0m|     2.5471ms|   match|[44m GET     [0m /v1/estado_pqr   r:/v1/estado_pqr/
+2026/10/09 07:15:36.882 [1;44m[D][0m [router.go:1305]  |            ::1|[42m 201 [0m|     6.3281ms|   match|[46m POST    [0m /v1/registro_actividad   r:/v1/registro_actividad/
+2026/10/09 07:15:37.188 [1;44m[D][0m [router.go:1305]  |            ::1|[42m 200 [0m|      849.2µs|   match|[44m GET     [0m /v1/estado_pqr   r:/v1/estado_pqr/
+2026/10/09 07:15:37.191 [1;44m[D][0m [router.go:1305]  |            ::1|[42m 201 [0m|     1.0467ms|   match|[46m POST    [0m /v1/pqr   r:/v1/pqr/
+2026/10/09 07:15:37.196 [1;44m[D][0m [router.go:1305]  |            ::1|[42m 201 [0m|      524.4µs|   match|[46m POST    [0m /v1/registro_actividad   r:/v1/registro_actividad/
+2026/10/09 07:15:37.341 [1;44m[D][0m [router.go:1305]  |            ::1|[42m 200 [0m|      1.065ms|   match|[44m GET     [0m /v1/pqr   r:/v1/pqr/
+2026/10/09 07:15:37.343 [1;44m[D][0m [router.go:1305]  |            ::1|[42m 200 [0m|      545.3µs|   match|[44m GET     [0m /v1/estado_pqr   r:/v1/estado_pqr/
+2026/10/09 07:15:37.435 [1;44m[D][0m [router.go:1305]  |            ::1|[42m 200 [0m|      541.2µs|   match|[44m GET     [0m /v1/pqr   r:/v1/pqr/
+2026/10/09 07:15:37.436 [1;44m[D][0m [router.go:1305]  |            ::1|[42m 200 [0m|      530.7µs|   match|[44m GET     [0m /v1/estado_pqr   r:/v1/estado_pqr/
