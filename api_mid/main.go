@@ -8,11 +8,31 @@ import (
 )
 
 func main() {
-	// Permite que el frontend (Angular, http://localhost:4200) llame al MID.
+	if beego.BConfig.RunMode == "dev" {
+		beego.BConfig.WebConfig.DirectoryIndex = true
+		beego.BConfig.WebConfig.StaticDir["/swagger"] = "swagger"
+	}
+
+	// Permite que el frontend (Angular) llame al MID.
 	beego.InsertFilter("*", beego.BeforeRouter, cors.Allow(&cors.Options{
-		AllowOrigins:     []string{"*"},
-		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Requested-With"},
+		AllowOrigins: []string{"*"},
+		AllowMethods: []string{
+			"PUT",
+			"PATCH",
+			"GET",
+			"POST",
+			"OPTIONS",
+			"DELETE",
+		},
+		AllowHeaders: []string{
+			"Origin",
+			"x-requested-with",
+			"content-type",
+			"accept",
+			"origin",
+			"authorization",
+			"x-csrftoken",
+		},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 	}))

@@ -1,3 +1,8 @@
+// @APIVersion 1.0.0
+// @Title FinanceUp - API MID
+// @Description Une la informacion de los 5 CRUD de FinanceUp
+// @License Apache 2.0
+// @LicenseUrl http://www.apache.org/licenses/LICENSE-2.0.html
 package routers
 
 import (
@@ -6,37 +11,33 @@ import (
 	beego "github.com/beego/beego/v2/server/web"
 )
 
-// Todas las rutas del MID. Cada linea dice: ruta, controlador y "metodo:Funcion".
 func init() {
-	ns := beego.NewNamespace("/v1",
-		// Estado de los servicios
-		beego.NSRouter("/estado", &controllers.DashboardController{}, "get:Estado"),
+	// Estado de los CRUD
+	beego.Router("/v1/estado", &controllers.MidController{}, "get:Estado")
 
-		// Usuarios (crud_auth)
-		beego.NSRouter("/perfil/:id", &controllers.AuthController{}, "get:ObtenerPerfil"),
-		beego.NSRouter("/registro", &controllers.AuthController{}, "post:Registrar"),
-		beego.NSRouter("/login", &controllers.AuthController{}, "post:IniciarSesion"),
+	// Usuarios (crud_auth)
+	beego.Router("/v1/perfil/:id", &controllers.MidController{}, "get:GetPerfil")
+	beego.Router("/v1/registro", &controllers.MidController{}, "post:PostRegistro")
+	beego.Router("/v1/login", &controllers.MidController{}, "post:PostLogin")
 
-		// Finanzas (crud_finanzas)
-		beego.NSRouter("/resumen-financiero/:id", &controllers.FinanzasController{}, "get:ResumenFinanciero"),
+	// Finanzas (crud_finanzas)
+	beego.Router("/v1/resumen-financiero/:id", &controllers.MidController{}, "get:GetResumenFinanciero")
 
-		// Educacion (crud_educacion)
-		beego.NSRouter("/progreso-educativo/:id", &controllers.EducacionController{}, "get:ProgresoEducativo"),
+	// Educacion (crud_educacion)
+	beego.Router("/v1/progreso-educativo/:id", &controllers.MidController{}, "get:GetProgresoEducativo")
 
-		// Creditos (crud_negocio)
-		beego.NSRouter("/ofertas", &controllers.NegocioController{}, "get:Ofertas"),
-		beego.NSRouter("/solicitud-credito", &controllers.NegocioController{}, "post:CrearSolicitud"),
-		beego.NSRouter("/solicitud-credito/usuario/:id", &controllers.NegocioController{}, "get:SolicitudesDeUsuario"),
+	// Creditos (crud_negocio)
+	beego.Router("/v1/ofertas", &controllers.MidController{}, "get:GetOfertas")
+	beego.Router("/v1/solicitud-credito", &controllers.MidController{}, "post:PostSolicitudCredito")
+	beego.Router("/v1/solicitud-credito/usuario/:id", &controllers.MidController{}, "get:GetSolicitudesUsuario")
 
-		// PQR (crud_soporte)
-		beego.NSRouter("/pqr", &controllers.SoporteController{}, "post:CrearPqr"),
-		beego.NSRouter("/pqr/usuario/:id", &controllers.SoporteController{}, "get:PqrDeUsuario"),
+	// PQR (crud_soporte)
+	beego.Router("/v1/pqr", &controllers.MidController{}, "post:PostPqr")
+	beego.Router("/v1/pqr/usuario/:id", &controllers.MidController{}, "get:GetPqrUsuario")
 
-		// Panel con todo junto (los 5 CRUD)
-		beego.NSRouter("/dashboard/:id", &controllers.DashboardController{}, "get:Dashboard"),
+	// Todo junto
+	beego.Router("/v1/dashboard/:id", &controllers.MidController{}, "get:GetDashboard")
 
-		// Pasarela: cualquier operacion directa sobre un CRUD
-		beego.NSRouter("/crud/:conjunto/*", &controllers.PasarelaController{}, "*:Reenviar"),
-	)
-	beego.AddNamespace(ns)
+	// Pasarela a cualquier CRUD
+	beego.Router("/v1/crud/:conjunto/*", &controllers.MidController{}, "*:Reenviar")
 }
