@@ -1,6 +1,0 @@
-2026/10/09 07:14:56.551 [1;34m[I][0m [server.go:280]  http server Running on http://:8083
-2026/10/09 07:15:10.603 [1;44m[D][0m [router.go:1305]  |            ::1|[43m 404 [0m|     2.1283ms| nomatch|[44m GET     [0m /v1
-2026/10/09 07:15:23.761 [1;44m[D][0m [router.go:1305]  |            ::1|[42m 200 [0m|     7.3053ms|   match|[44m GET     [0m /v1/modulo_educativo   r:/v1/modulo_educativo/
-2026/10/09 07:15:23.767 [1;44m[D][0m [router.go:1305]  |            ::1|[42m 200 [0m|     4.1328ms|   match|[44m GET     [0m /v1/progreso_educativo   r:/v1/progreso_educativo/
-2026/10/09 07:15:36.702 [1;44m[D][0m [router.go:1305]  |            ::1|[42m 200 [0m|      1.073ms|   match|[44m GET     [0m /v1/modulo_educativo   r:/v1/modulo_educativo/
-2026/10/09 07:15:36.704 [1;44m[D][0m [router.go:1305]  |            ::1|[42m 200 [0m|      528.8µs|   match|[44m GET     [0m /v1/progreso_educativo   r:/v1/progreso_educativo/

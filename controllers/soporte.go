@@ -1,73 +1,114 @@
 package controllers
 
 import (
-	beego "github.com/beego/beego/v2/server/web"
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"strconv"
+	"time"
+
+	beego "github.com/beego/beego/v2/server/web"
 )
 
 type EstadoPqr struct {
-	ID                 int        `json:"id_estado"`
-	Nombre             string     `json:"nombre"`
-	Descripcion        *string    `json:"descripcion"`
+	Id     int    `json:"Id"`
+	Nombre string `json:"Nombre"`
 }
 
 type Pqr struct {
-	ID                 int       `json:"id_pqr"`
-	IDUsuario          int       `json:"id_usuario"`
-	Descripcion        string    `json:"descripcion"`
-	IDEstado           int       `json:"id_estado"`
+	Id            int       `json:"Id"`
+	IdUsuario     int       `json:"IdUsuario"`
+	Radicado      string    `json:"Radicado"`
+	Titulo        string    `json:"Titulo"`
+	Tipo          string    `json:"Tipo"`
+	Categoria     string    `json:"Categoria"`
+	Prioridad     string    `json:"Prioridad"`
+	Descripcion   string    `json:"Descripcion"`
+	IdEstado      int     `json:"IdEstado"`
+	Activo        bool      `json:"Activo"`
+	FechaCreacion time.Time `json:"FechaCreacion"`
 }
-
-type Adjunto struct {
-	ID                 int        `json:"id_adjunto"`
-	IDPqr              int        `json:"id_pqr"`
-	NombreArchivo      string     `json:"nombre_archivo"`
-	RutaArchivo        string     `json:"ruta_archivo"`
-	TipoMime           *string    `json:"tipo_mime"`
-	TamanoBytes        *int       `json:"tamano_bytes"`
-}
-
 
 type RegistroActividad struct {
-	ID               int        `json:"id_actividad"`
-	IDUsuario        *int       `json:"id_usuario"`
-	TipoActividad    *string    `json:"tipo_actividad"`
-	Descripcion      *string    `json:"descripcion"`
-	EntidadAfectada  *string    `json:"entidad_afectada"`
+	IdUsuario       *int   `json:"IdUsuario"`
+	TipoActividad   string `json:"TipoActividad"`
+	Descripcion     string `json:"Descripcion"`
+	EntidadAfectada string `json:"EntidadAfectada"`
 }
 
-const estadoInicialPqr = "Abierta"
-
-// PqrDeUsuario lista las PQR de un usuario con su estado y sus adjuntos.
-func PqrDeUsuario(idUsuario int) ([]models.PqrVista, error) {
-	lista := []models.PqrVista{}
-	if err := ExisteUsuario(idUsuario); err != nil {
-		return lista, err
-	}
-
-	var pqrs []models.Pqr
-	if err := helpers.Consultar("soporte", "pqr?"+helpers.Filtro("id_usuario", idUsuario, "activo", true)+"&sortby=fecha_creacion&order=desc", &pqrs); err != nil {
-		return lista, err
-	}
-	estados, err := estadosPorId()
-	if err != nil {
-		return lista, err
-	}
-
-	for _, p := range pqrs {
-		lista = append(lista, armarPqr(p, estados))
-	}
-	return lista, nil
+type DatosPqr struct {
+	IdUsuario   int    `json:"id_usuario"`
+	Titulo      string `json:"titulo"`
+	Tipo        string `json:"tipo"`
+	Categoria   string `json:"categoria"`
+	Prioridad   string `json:"prioridad"`
+	Descripcion string `json:"descripcion"`
 }
 
-// CrearPqr valida los datos, genera el numero de radicado y guarda la PQR
-// con el estado "Abierta".
-func CrearPqr(datos models.DatosPqr) (models.PqrVista, error) {
-	datos.Tipo = strings.ToLower(strings.TrimSpace(datos.Tipo))
-	datos.Prioridad = strings.ToLower(strings.TrimSpace(datos.Prioridad))
+// SoporteController operations for Soporte
+type SoporteController struct {
+	beego.Controller
+}
+
+func (c *SoporteController) PostPqr() {
+
+	// --------------------------------------------------------
+	// 1. Leer los datos enviados
+	// --------------------------------------------------------
+
+	var datos DatosPqr
+
+	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &datos); err != nil {
+		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadRequest)
+		c.Data["json"] = map[string]interface{}{"error": "El cuerpo de la peticion no es un JSON valido"}
+		c.ServeJSON()
+		return
+	}
+
+	if datos.Titulo == "" || datos.Descripcion == "" {
+		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadRequest)
+		c.Data["json"] = map[string]interface{}{"error": "El titulo y la descripcion son obligatorios"}
+		c.ServeJSON()
+		return
+	}
+
+	if datos.Tipo != "peticion" && datos.Tipo != "queja" && datos.Tipo != "reclamo" && datos.Tipo != "sugerencia" {
+		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadRequest)
+		c.Data["json"] = map[string]interface{}{"error": "El tipo debe ser: peticion, queja, reclamo o sugerencia"}
+		c.ServeJSON()
+		return
+	}
+
 	if datos.Prioridad == "" {
 		datos.Prioridad = "media"
+	}
+
+	responseUsuario, err := http.Get(fmt.Sprintf("http://localhost:8081/v1/usuario/%d", datos.IdUsuario))
+
+	if err != nil {
+		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
+		c.Data["json"] = map[string]interface{}{"error": "No fue posible comunicarse con la API de usuarios"}
+		c.ServeJSON()
+		return
+	}
+
+	defer responseUsuario.Body.Close()
+
+	bodyUsuario, _ := io.ReadAll(responseUsuario.Body)
+
+	var usuario Usuario
+
+	if err := json.Unmarshal(bodyUsuario, &usuario); err != nil {
+		c.Ctx.ResponseWriter.WriteHeader(http.StatusNotFound)
+		c.Data["json"] = map[string]interface{}{"error": "El usuario no existe"}
+		c.ServeJSON()
+		return
+	}
+
+	responseEstado, err := http.Get("http://localhost:8085/v1/estado_pqr?query=nombre:Abierta")
+
+
+	defer responseEstado.Body.Close()
+}
