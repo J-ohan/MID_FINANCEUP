@@ -12,32 +12,27 @@ import (
 )
 
 func init() {
-	// Estado de los CRUD
-	beego.Router("/v1/estado", &controllers.MidController{}, "get:Estado")
+	// General
+	beego.Router("/v1/estado", &controllers.GeneralController{}, "get:Estado")
+	beego.Router("/v1/dashboard/:id", &controllers.GeneralController{}, "get:GetDashboard")
 
 	// Usuarios (crud_auth)
-	beego.Router("/v1/perfil/:id", &controllers.MidController{}, "get:GetPerfil")
-	beego.Router("/v1/registro", &controllers.MidController{}, "post:PostRegistro")
-	beego.Router("/v1/login", &controllers.MidController{}, "post:PostLogin")
+	beego.Router("/v1/perfil/:id", &controllers.AuthController{}, "get:GetPerfil")
+	beego.Router("/v1/registro", &controllers.AuthController{}, "post:PostRegistro")
+	beego.Router("/v1/login", &controllers.AuthController{}, "post:PostLogin")
 
 	// Finanzas (crud_finanzas)
-	beego.Router("/v1/resumen-financiero/:id", &controllers.MidController{}, "get:GetResumenFinanciero")
+	beego.Router("/v1/resumen-financiero/:id", &controllers.FinanzasController{}, "get:GetResumenFinanciero")
 
 	// Educacion (crud_educacion)
-	beego.Router("/v1/progreso-educativo/:id", &controllers.MidController{}, "get:GetProgresoEducativo")
+	beego.Router("/v1/progreso-educativo/:id", &controllers.EducacionController{}, "get:GetProgresoEducativo")
 
 	// Creditos (crud_negocio)
-	beego.Router("/v1/ofertas", &controllers.MidController{}, "get:GetOfertas")
-	beego.Router("/v1/solicitud-credito", &controllers.MidController{}, "post:PostSolicitudCredito")
-	beego.Router("/v1/solicitud-credito/usuario/:id", &controllers.MidController{}, "get:GetSolicitudesUsuario")
+	beego.Router("/v1/ofertas", &controllers.NegocioController{}, "get:GetOfertas")
+	beego.Router("/v1/solicitud-credito", &controllers.NegocioController{}, "post:PostSolicitudCredito")
+	beego.Router("/v1/solicitud-credito/usuario/:id", &controllers.NegocioController{}, "get:GetSolicitudesUsuario")
 
 	// PQR (crud_soporte)
-	beego.Router("/v1/pqr", &controllers.MidController{}, "post:PostPqr")
-	beego.Router("/v1/pqr/usuario/:id", &controllers.MidController{}, "get:GetPqrUsuario")
-
-	// Todo junto
-	beego.Router("/v1/dashboard/:id", &controllers.MidController{}, "get:GetDashboard")
-
-	// Pasarela a cualquier CRUD
-	beego.Router("/v1/crud/:conjunto/*", &controllers.MidController{}, "*:Reenviar")
+	beego.Router("/v1/pqr", &controllers.SoporteController{}, "post:PostPqr")
+	beego.Router("/v1/pqr/usuario/:id", &controllers.SoporteController{}, "get:GetPqrUsuario")
 }
