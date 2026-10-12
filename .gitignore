@@ -1,0 +1,7 @@
+*.exe
+*.exe~
+lastupdate.tmp
+crud.log
+mid.log
+.env
+crud_err.log
