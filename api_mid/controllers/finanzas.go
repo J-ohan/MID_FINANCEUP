@@ -1,6 +1,6 @@
-// ============================================================================
+
 // FINANZAS.GO — Controlador del módulo de Finanzas en el MID
-// ============================================================================
+
 //
 // ¿QUÉ ES EL MID?
 //   El MID es el "intermediario" entre el frontend (Angular) y los CRUD.
@@ -41,7 +41,7 @@
 //   (c *FinanzasController)   Indica que esa función pertenece al controlador de finanzas.
 //                   Dentro de ella, "c" es el controlador: con él se lee la petición
 //                   y se envía la respuesta.
-// ============================================================================
+
 
 package controllers
 
@@ -75,7 +75,7 @@ const (
 	limiteCrud = 10000
 )
 
-// ============================================================================
+
 // 1. TABLAS: JSON que el MID recibe de los CRUD
 // ----------------------------------------------------------------------------
 // Cada struct es una "plantilla" de una tabla de la base de datos.
@@ -89,7 +89,7 @@ const (
 // Nota: "Ref" y "Usuario" no están en este archivo porque ya existen en auth.go
 // (que es del mismo paquete). Ref representa una llave foránea tal como la
 // manda el CRUD, por ejemplo: "IdCategoria": {"Id": 3}
-// ============================================================================
+
 
 // Tabla finanzas.categoria — las categorías de los movimientos (Arriendo, Salud, Salario...)
 type Categoria struct {
@@ -164,12 +164,12 @@ type HistorialInversion struct {
 	Activo      bool      `json:"Activo"`      // false = no se tiene en cuenta
 }
 
-// ============================================================================
+
 // 2. DATOS: JSON que el MID recibe del frontend
 // ----------------------------------------------------------------------------
 // Son los datos de los formularios. Usan nombres en minúscula con guion bajo
 // (id_usuario, metodo_pago), igual que el resto del MID del equipo.
-// ============================================================================
+
 
 // Lo que envía el formulario de "Nuevo movimiento" o "Editar movimiento".
 // Rutas: POST /v1/movimientos y PUT /v1/movimientos/:id
@@ -570,9 +570,9 @@ func (c *FinanzasController) GetCategorias() {
 	c.responder(http.StatusOK, lista)
 }
 
-// ----------------------------------------------------------------------------
+
 // LIBRO MAYOR (tablas movimiento_ingreso_egreso + categoria)
-// ----------------------------------------------------------------------------
+
 
 // GetMovimientosUsuario devuelve los movimientos de un usuario (filtrados)
 // y los totales de esos movimientos.
