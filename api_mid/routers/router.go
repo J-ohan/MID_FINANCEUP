@@ -15,15 +15,15 @@ package routers
 //
 // Ejemplo:
 //
-//	beego.Router("/v1/metas", &controllers.FinanzasController{}, "post:PostMeta")
+//	beego.Router("/v1/metas", &controllers.FinanzasController{}, "post:CrearMeta")
 //
 // se lee así: "cuando llegue un POST a /v1/metas, ejecutar la función
-// PostMeta del controlador de finanzas".
+// CrearMeta del controlador de finanzas".
 //
 //   - :id dentro de la ruta es un valor que cambia, por ejemplo /v1/metas/6.
 //     En el controlador se lee con c.Ctx.Input.Param(":id").
 //   - Si una misma ruta atiende varios métodos, se separan con punto y coma:
-//     "put:PutMeta;delete:DeleteMeta" → PUT edita y DELETE elimina.
+//     "put:EditarMeta;delete:EliminarMeta" → PUT edita y DELETE elimina.
 //   - Métodos HTTP: get = consultar, post = crear, put = editar, delete = eliminar.
 // ============================================================================
 
@@ -49,44 +49,44 @@ func init() {
 	// ------------------------------------------------------------------------
 
 	// Panel principal: tarjetas, salud, dona, metas e inversiones de un usuario
-	beego.Router("/v1/resumen-financiero/:id", &controllers.FinanzasController{}, "get:GetResumenFinanciero")
+	beego.Router("/v1/resumen-financiero/:id", &controllers.FinanzasController{}, "get:ObtenerResumenFinanciero")
 	// Categorías para los selects y filtros
-	beego.Router("/v1/categorias", &controllers.FinanzasController{}, "get:GetCategorias")
+	beego.Router("/v1/categorias", &controllers.FinanzasController{}, "get:ObtenerCategorias")
 
 	// Finanzas - Libro mayor
 	// Movimientos de un usuario (acepta filtros: ?tipo=&categoria=&desde=&hasta=&q=)
-	beego.Router("/v1/movimientos/usuario/:id", &controllers.FinanzasController{}, "get:GetMovimientosUsuario")
+	beego.Router("/v1/movimientos/usuario/:id", &controllers.FinanzasController{}, "get:ObtenerMovimientos")
 	// Crear un movimiento
-	beego.Router("/v1/movimientos", &controllers.FinanzasController{}, "post:PostMovimiento")
+	beego.Router("/v1/movimientos", &controllers.FinanzasController{}, "post:CrearMovimiento")
 	// Importar movimientos desde la plantilla de Excel
-	beego.Router("/v1/movimientos/importar", &controllers.FinanzasController{}, "post:PostImportarMovimientos")
+	beego.Router("/v1/movimientos/importar", &controllers.FinanzasController{}, "post:ImportarMovimientos")
 	// Editar (PUT) o eliminar (DELETE) un movimiento
-	beego.Router("/v1/movimientos/:id", &controllers.FinanzasController{}, "put:PutMovimiento;delete:DeleteMovimiento")
+	beego.Router("/v1/movimientos/:id", &controllers.FinanzasController{}, "put:EditarMovimiento;delete:EliminarMovimiento")
 
 	// Finanzas - Metas
 	// Metas de un usuario con sus totales
-	beego.Router("/v1/metas/usuario/:id", &controllers.FinanzasController{}, "get:GetMetasUsuario")
+	beego.Router("/v1/metas/usuario/:id", &controllers.FinanzasController{}, "get:ObtenerMetas")
 	// Crear una meta
-	beego.Router("/v1/metas", &controllers.FinanzasController{}, "post:PostMeta")
+	beego.Router("/v1/metas", &controllers.FinanzasController{}, "post:CrearMeta")
 	// Editar (PUT) o eliminar (DELETE) una meta
-	beego.Router("/v1/metas/:id", &controllers.FinanzasController{}, "put:PutMeta;delete:DeleteMeta")
+	beego.Router("/v1/metas/:id", &controllers.FinanzasController{}, "put:EditarMeta;delete:EliminarMeta")
 	// Abonar dinero a una meta
-	beego.Router("/v1/metas/:id/abono", &controllers.FinanzasController{}, "put:PutAbonoMeta")
+	beego.Router("/v1/metas/:id/abono", &controllers.FinanzasController{}, "put:AbonarMeta")
 
 	// Finanzas - Inversiones
 	// Inversiones de un usuario con su resumen y gráfica
-	beego.Router("/v1/inversiones/usuario/:id", &controllers.FinanzasController{}, "get:GetInversionesUsuario")
+	beego.Router("/v1/inversiones/usuario/:id", &controllers.FinanzasController{}, "get:ObtenerInversiones")
 	// Crear una inversión
-	beego.Router("/v1/inversiones", &controllers.FinanzasController{}, "post:PostInversion")
+	beego.Router("/v1/inversiones", &controllers.FinanzasController{}, "post:CrearInversion")
 	// Editar (PUT) o eliminar (DELETE) una inversión
-	beego.Router("/v1/inversiones/:id", &controllers.FinanzasController{}, "put:PutInversion;delete:DeleteInversion")
+	beego.Router("/v1/inversiones/:id", &controllers.FinanzasController{}, "put:EditarInversion;delete:EliminarInversion")
 
 	// Finanzas - Admin (datos de todos los usuarios)
-	beego.Router("/v1/admin/movimientos", &controllers.FinanzasController{}, "get:GetAdminMovimientos")
-	beego.Router("/v1/admin/metas", &controllers.FinanzasController{}, "get:GetAdminMetas")
-	beego.Router("/v1/admin/inversiones", &controllers.FinanzasController{}, "get:GetAdminInversiones")
+	beego.Router("/v1/admin/movimientos", &controllers.FinanzasController{}, "get:ObtenerMovimientosAdmin")
+	beego.Router("/v1/admin/metas", &controllers.FinanzasController{}, "get:ObtenerMetasAdmin")
+	beego.Router("/v1/admin/inversiones", &controllers.FinanzasController{}, "get:ObtenerInversionesAdmin")
 	// Libro mayor agrupado por usuario, con el nombre de cada uno
-	beego.Router("/v1/admin/libro-mayor", &controllers.FinanzasController{}, "get:GetAdminLibroMayor")
+	beego.Router("/v1/admin/libro-mayor", &controllers.FinanzasController{}, "get:ObtenerLibroMayorAdmin")
 
 	// ------------------------------------------------------------------------
 	// OTROS MÓDULOS (no son de finanzas)
