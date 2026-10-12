@@ -5,3 +5,4 @@ crud.log
 mid.log
 conexion_bd.conf
 crud_err.log
+.env
