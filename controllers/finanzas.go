@@ -114,6 +114,7 @@ func (c *FinanzasController) ObtenerResumenFinanciero() {
 
 	inversiones, err := crud.ObtenerInversiones(idUsuario)
 
+	
 	if err != nil {
 		c.Data["json"] = map[string]interface{}{
 			"OK":      false,
