@@ -442,3 +442,201 @@ func (c *FinanzasController) CrearMovimiento() {
 	c.Ctx.ResponseWriter.WriteHeader(http.StatusCreated)
 	c.ServeJSON()
 }
+
+// METAS (meta)
+// ============================================================
+
+// @Title Metas del usuario.
+// @Description Devuelve las metas de un usuario con su porcentaje, lo que falta y si están cumplidas, más los totales.
+// @Param id path int true "Id del usuario"
+// @Success 200 {object} models.RespuestaMetas
+// @Failure 400 {object} map[string]interface{} "Id inválido"
+// @Failure 404 {object} map[string]interface{} "El usuario no existe"
+// @Failure 502 {object} map[string]interface{} "Error al consultar los CRUD"
+// @Router /v1/metas/usuario/:id [get]
+func (c *FinanzasController) ObtenerMetas() {
+	idUsuario, err := strconv.Atoi(c.Ctx.Input.Param(":id"))
+
+	if err != nil || idUsuario <= 0 {
+		c.Data["json"] = map[string]interface{}{
+			"OK":      false,
+			"Mensaje": "El id del usuario debe ser un número mayor que cero.",
+		}
+		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadRequest)
+		c.ServeJSON()
+		return
+	}
+
+	crud := services.NewCrudFinanzasService()
+
+	_, err = crud.ObtenerUsuario(idUsuario)
+
+	if errors.Is(err, services.ErrNoEncontrado) {
+		c.Data["json"] = map[string]interface{}{
+			"OK":      false,
+			"Mensaje": "El usuario no existe.",
+		}
+		c.Ctx.ResponseWriter.WriteHeader(http.StatusNotFound)
+		c.ServeJSON()
+		return
+	}
+
+	if err != nil {
+		c.Data["json"] = map[string]interface{}{
+			"OK":      false,
+			"Mensaje": "No fue posible consultar el usuario.",
+			"Error":   err.Error(),
+		}
+		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
+		c.ServeJSON()
+		return
+	}
+
+	metas, err := crud.ObtenerMetas(idUsuario)
+
+	if err != nil {
+		c.Data["json"] = map[string]interface{}{
+			"OK":      false,
+			"Mensaje": "No fue posible consultar las metas.",
+			"Error":   err.Error(),
+		}
+		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
+		c.ServeJSON()
+		return
+	}
+
+	calculos := services.CalcularMetas(metas)
+
+	respuesta := models.RespuestaMetas{
+		OK:              true,
+		Mensaje:         "Metas consultadas correctamente.",
+		Metas:           calculos.Metas,
+		TotalMetas:      calculos.TotalMetas,
+		MetasAlcanzadas: calculos.MetasAlcanzadas,
+		TotalAhorrado:   calculos.TotalAhorrado,
+		TotalObjetivo:   calculos.TotalObjetivo,
+		ProgresoGeneral: calculos.ProgresoGeneral,
+	}
+
+	c.Data["json"] = respuesta
+	c.Ctx.ResponseWriter.WriteHeader(http.StatusOK)
+	c.ServeJSON()
+}
+
+// @Title Crear meta.
+// @Description Crea una meta de ahorro. Si no se envía ícono se usa 🎯.
+// @Param body body models.SolicitudMeta true "Datos de la meta"
+// @Success 201 {object} models.RespuestaMeta
+// @Failure 400 {object} map[string]interface{} "Solicitud inválida"
+// @Failure 404 {object} map[string]interface{} "El usuario no existe"
+// @Failure 502 {object} map[string]interface{} "Error al consultar los CRUD"
+// @Router /v1/metas [post]
+func (c *FinanzasController) CrearMeta() {
+	body := c.Ctx.Input.RequestBody
+
+	if len(body) == 0 {
+		c.Data["json"] = map[string]interface{}{
+			"OK":      false,
+			"Mensaje": "El cuerpo de la solicitud se encuentra vacío.",
+		}
+		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadRequest)
+		c.ServeJSON()
+		return
+	}
+
+	var solicitud models.SolicitudMeta
+
+	err := json.Unmarshal(body, &solicitud)
+
+	if err != nil {
+		c.Data["json"] = map[string]interface{}{
+			"OK":      false,
+			"Mensaje": "El cuerpo de la solicitud no tiene formato válido.",
+			"Error":   err.Error(),
+		}
+		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadRequest)
+		c.ServeJSON()
+		return
+	}
+
+	if solicitud.IdUsuario <= 0 {
+		c.Data["json"] = map[string]interface{}{
+			"OK":      false,
+			"Mensaje": "El id del usuario es obligatorio.",
+		}
+		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadRequest)
+		c.ServeJSON()
+		return
+	}
+
+	mensaje := validarMeta(&solicitud)
+
+	if mensaje != "" {
+		c.Data["json"] = map[string]interface{}{
+			"OK":      false,
+			"Mensaje": mensaje,
+		}
+		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadRequest)
+		c.ServeJSON()
+		return
+	}
+
+	crud := services.NewCrudFinanzasService()
+
+	_, err = crud.ObtenerUsuario(solicitud.IdUsuario)
+
+	if errors.Is(err, services.ErrNoEncontrado) {
+		c.Data["json"] = map[string]interface{}{
+			"OK":      false,
+			"Mensaje": "El usuario no existe.",
+		}
+		c.Ctx.ResponseWriter.WriteHeader(http.StatusNotFound)
+		c.ServeJSON()
+		return
+	}
+
+	if err != nil {
+		c.Data["json"] = map[string]interface{}{
+			"OK":      false,
+			"Mensaje": "No fue posible consultar el usuario.",
+			"Error":   err.Error(),
+		}
+		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
+		c.ServeJSON()
+		return
+	}
+
+	// El formulario "Nueva meta" no usa editar_meta: IdEditarMeta queda vacío
+	meta := models.Meta{
+		IdUsuario:     solicitud.IdUsuario,
+		Nombre:        solicitud.Nombre,
+		Icono:         solicitud.Icono,
+		MontoObjetivo: solicitud.Objetivo,
+		MontoActual:   solicitud.Actual,
+		Activo:        true,
+	}
+
+	err = crud.Crear("meta", &meta)
+
+	if err != nil {
+		c.Data["json"] = map[string]interface{}{
+			"OK":      false,
+			"Mensaje": "No fue posible guardar la meta.",
+			"Error":   err.Error(),
+		}
+		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
+		c.ServeJSON()
+		return
+	}
+
+	respuesta := models.RespuestaMeta{
+		OK:      true,
+		Mensaje: "Meta creada correctamente.",
+		Meta:    services.ArmarMeta(meta),
+	}
+
+	c.Data["json"] = respuesta
+	c.Ctx.ResponseWriter.WriteHeader(http.StatusCreated)
+	c.ServeJSON()
+}
+
