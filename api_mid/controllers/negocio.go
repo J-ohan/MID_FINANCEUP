@@ -115,6 +115,3 @@ func (c *NegocioController) GetOfertas() {
 	c.ServeJSON()
 }
 
-// Pendiente:
-// POST /v1/solicitud-credito            -> crear la solicitud (lead)
-// GET  /v1/solicitud-credito/usuario/:id -> solicitudes de un usuario
