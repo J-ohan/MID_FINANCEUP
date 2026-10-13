@@ -3,5 +3,6 @@
 lastupdate.tmp
 crud.log
 mid.log
-.env
+conexion_bd.conf
 crud_err.log
+.env
