@@ -31,3 +31,20 @@ func NewCrudFinanzasService() *CrudFinanzasService {
 		URLUsuarios: web.AppConfig.DefaultString("urlCrudUsuarios", "http://localhost:8081/v1"),
 	}
 }
+
+// USUARIOS (crud_auth)
+
+
+func (s *CrudFinanzasService) ObtenerUsuario(idUsuario int) (models.Usuario, error) {
+	var usuario models.Usuario
+
+	url := fmt.Sprintf("%s/usuario/%d", s.URLUsuarios, idUsuario)
+
+	err := consultar(url, &usuario)
+
+	if err != nil {
+		return usuario, err
+	}
+
+	return usuario, nil
+}
