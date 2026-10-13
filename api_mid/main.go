@@ -1,7 +1,7 @@
 package main
 
 import (
-	"api_mid_financeup/controllers"
+	"api_mid_financeup/helpers"
 	_ "api_mid_financeup/routers"
 
 	beego "github.com/beego/beego/v2/server/web"
@@ -13,7 +13,7 @@ func main() {
 	// Las direcciones de los CRUD salen del archivo .env
 	// (en la carpeta MID_FINANCEUP, no se sube a git).
 	godotenv.Load("../.env")
-	controllers.CargarUrls()
+	helpers.CargarUrls()
 
 	if beego.BConfig.RunMode == "dev" {
 		beego.BConfig.WebConfig.DirectoryIndex = true
