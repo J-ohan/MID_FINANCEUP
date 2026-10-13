@@ -13,7 +13,7 @@ type Usuario struct {
 	Apellido                string    `json:"Apellido"`
 	Email                   string    `json:"Email"`
 	Telefono                string    `json:"Telefono"`
-	Cedula                  string    `json:"Cedula"`
+	Cedula                  *string   `json:"Cedula"` // nil = sin cedula (se guarda NULL)
 	Ciudad                  string    `json:"Ciudad"`
 	Direccion               string    `json:"Direccion"`
 	FechaNacimiento         time.Time `json:"FechaNacimiento"`

@@ -221,6 +221,11 @@ func ObtenerPerfil(id int) (map[string]interface{}, error) {
 	}
 
 	// 4. Armar el perfil
+	cedula := ""
+	if usuario.Cedula != nil {
+		cedula = *usuario.Cedula
+	}
+
 	fechaNacimiento := ""
 	if !usuario.FechaNacimiento.IsZero() {
 		fechaNacimiento = usuario.FechaNacimiento.Format("2006-01-02")
@@ -232,7 +237,7 @@ func ObtenerPerfil(id int) (map[string]interface{}, error) {
 		"apellido":         usuario.Apellido,
 		"email":            usuario.Email,
 		"tipo_documento":   tipoDocumento,
-		"cedula":           usuario.Cedula,
+		"cedula":           cedula,
 		"telefono":         usuario.Telefono,
 		"ciudad":           usuario.Ciudad,
 		"direccion":        usuario.Direccion,
@@ -280,7 +285,6 @@ func Registrar(datos models.DatosRegistro) (map[string]interface{}, error) {
 		Nombre:                  datos.Nombre,
 		Apellido:                datos.Apellido,
 		Email:                   datos.Email,
-		Cedula:                  datos.Cedula,
 		Telefono:                datos.Telefono,
 		Ciudad:                  datos.Ciudad,
 		Direccion:               datos.Direccion,
@@ -288,6 +292,11 @@ func Registrar(datos models.DatosRegistro) (map[string]interface{}, error) {
 		FechaAceptacionTerminos: time.Now().UTC(),
 		Estado:                  "activo",
 		Activo:                  true,
+	}
+
+	// La cedula es opcional: si no llega se deja en nil para que se guarde NULL
+	if datos.Cedula != "" {
+		nuevoUsuario.Cedula = &datos.Cedula
 	}
 
 	if datos.IdTipoDocumento > 0 {
