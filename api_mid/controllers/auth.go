@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 	"time"
+	"encoding/json"
 
 	beego "github.com/beego/beego/v2/server/web"
 )
@@ -132,4 +133,32 @@ func (c *AuthController) GetPerfil() {
 	bodyUsuario,_:io.ReadAll(responseUsuario.Body)
 
 	var usuario Usuario
+
+
+	if err := json.Unmarshal(bodyUsuario, &usuario); err !=nil{
+		c.Ctx.ResponseWriter.WriteHeader(http.StatusNotFound)
+		c.Data["json"] = map[string]interface{}{
+			"error": "El usuario no existe"}
+		c.ServeJSON()
+		return
+	}
+
+	//Condultar su tipo de documento
+
+	TipoDocumento :=""
+
+	if usuario.TipoDocumento !=nil{
+
+		responseTipo, err := http.Get(fmt.Sprintf("http://localhost:8081/v1/tipo_documento/%d", usuario.TipoDocumento.Id))
+
+		if err ==nil {
+			defer responseTipo.Body.Close()
+			bodyTipo,_ := io.ReadAll(responseTipo.Body)
+
+			var TipoDocumento
+			if json.Unmarshal(bodyTipo, &tipo) ==nil{
+				tipoDocumento
+			}
+		}
+	}
 }
