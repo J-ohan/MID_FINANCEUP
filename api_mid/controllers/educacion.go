@@ -101,17 +101,67 @@ func (c *EducacionController) GetProgresoEducativo() {
 	json.Unmarshal(bodyModulos, &modulos)
 
 	// --------------------------------------------------------
-	// 4. Pendiente: consultar progreso_educativo del usuario
-	//    y unir cada curso con su porcentaje y estado
+	// 4. Consultar el avance del usuario en cada curso
 	// --------------------------------------------------------
 
+	responseProgreso, err := http.Get(fmt.Sprintf("http://localhost:8083/v1/progreso_educativo?query=id_usuario:%d&limit=1000", id))
+
+	if err != nil {
+		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
+		c.Data["json"] = map[string]interface{}{"error": "No fue posible consultar el progreso"}
+		c.ServeJSON()
+		return
+	}
+
+	defer responseProgreso.Body.Close()
+
+	bodyProgreso, _ := io.ReadAll(responseProgreso.Body)
+
+	var avances []ProgresoEducativo
+	json.Unmarshal(bodyProgreso, &avances)
+
+	// Guardamos el avance de cada curso por su id
+	avancePorModulo := map[int]ProgresoEducativo{}
+	for _, avance := range avances {
+		if avance.IdModulo != nil {
+			avancePorModulo[avance.IdModulo.Id] = avance
+		}
+	}
+
 	// --------------------------------------------------------
-	// 5. Por ahora se devuelven los cursos sin el avance
+	// 5. Unir cada curso con su porcentaje y estado
+	// --------------------------------------------------------
+
+	listaModulos := []map[string]interface{}{}
+
+	for _, modulo := range modulos {
+
+		porcentaje := avancePorModulo[modulo.Id].PorcentajeCompletado
+
+		estado := "sin iniciar"
+		if porcentaje >= 100 {
+			estado = "completado"
+		} else if porcentaje > 0 {
+			estado = "en curso"
+		}
+
+		listaModulos = append(listaModulos, map[string]interface{}{
+			"id_modulo":  modulo.Id,
+			"titulo":     modulo.Titulo,
+			"nivel":      modulo.Nivel,
+			"porcentaje": porcentaje,
+			"estado":     estado,
+		})
+	}
+
+	// --------------------------------------------------------
+	// 6. Devolver el progreso
+	//    Pendiente: porcentaje general y cursos completados
 	// --------------------------------------------------------
 
 	c.Data["json"] = map[string]interface{}{
 		"id_usuario": usuario.Id,
-		"modulos":    modulos,
+		"modulos":    listaModulos,
 	}
 
 	c.ServeJSON()

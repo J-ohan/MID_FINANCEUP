@@ -8,8 +8,12 @@ import (
 )
 
 func main() {
-	// Permite que el frontend (Angular) llame al MID desde otro puerto,
-	// por ejemplo http://localhost:4200. Sin esto el navegador bloquea las peticiones.
+	if beego.BConfig.RunMode == "dev" {
+		beego.BConfig.WebConfig.DirectoryIndex = true
+		beego.BConfig.WebConfig.StaticDir["/swagger"] = "swagger"
+	}
+ 
+	// Permite que el frontend (Angular) llame al MID.
 	beego.InsertFilter("*", beego.BeforeRouter, cors.Allow(&cors.Options{
 		AllowOrigins: []string{"*"},
 		AllowMethods: []string{
