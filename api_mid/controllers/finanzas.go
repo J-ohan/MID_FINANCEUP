@@ -1,2178 +1,976 @@
 package controllers
 
 import (
-	"api_mid_financeup/models"
-	"api_mid_financeup/services"
+	"bytes"
 	"encoding/json"
-	"errors"
+	"fmt"
+	"io"
 	"math"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
-	"unicode/utf8"
 
-	"github.com/beego/beego/v2/server/web"
+	beego "github.com/beego/beego/v2/server/web"
 )
 
-// FinanzasController atiende el módulo de Finanzas:
-// panel principal, Libro mayor, Metas, Inversiones y vistas de Admin.
-// Las consultas a los CRUD están en services/crud_finanzas_service.go
-// y los cálculos en services/calculos_finanzas_service.go.
+type Categoria struct {
+	Id     int    `json:"Id"`
+	Nombre string `json:"Nombre"`
+	Icono  string `json:"Icono"`
+}
+
+type Movimiento struct {
+	Id            int       `json:"Id"`
+	IdUsuario     int       `json:"IdUsuario"`
+	IdCategoria   *Ref      `json:"IdCategoria"`
+	Nombre        string    `json:"Nombre"`
+	Monto         float64   `json:"Monto"`
+	EsIngreso     bool      `json:"EsIngreso"`
+	Fecha         time.Time `json:"Fecha"`
+	MetodoPago    string    `json:"MetodoPago"`
+	Observaciones string    `json:"Observaciones"`
+	Activo        bool      `json:"Activo"`
+}
+
+type Meta struct {
+	Id            int       `json:"Id"`
+	IdUsuario     int       `json:"IdUsuario"`
+	Nombre        string    `json:"Nombre"`
+	Descripcion   string    `json:"Descripcion"`
+	MontoObjetivo float64   `json:"MontoObjetivo"`
+	MontoActual   float64   `json:"MontoActual"`
+	FechaLimite   time.Time `json:"FechaLimite"`
+	Icono         string    `json:"Icono"`
+	Color         string    `json:"Color"`
+	Activo        bool      `json:"Activo"`
+}
+
+type NivelRiesgo struct {
+	Id     int    `json:"Id"`
+	Nombre string `json:"Nombre"`
+}
+
+type Inversion struct {
+	Id            int       `json:"Id"`
+	IdUsuario     int       `json:"IdUsuario"`
+	IdNivelRiesgo *Ref      `json:"IdNivelRiesgo"`
+	Nombre        string    `json:"Nombre"`
+	Monto         float64   `json:"Monto"`
+	Rendimiento   float64   `json:"Rendimiento"`
+	Duracion      string    `json:"Duracion"`
+	FechaInicio   time.Time `json:"FechaInicio"`
+	FechaFin      time.Time `json:"FechaFin"`
+	Activo        bool      `json:"Activo"`
+}
+
+type HistorialInversion struct {
+	Id    int       `json:"Id"`
+	Fecha time.Time `json:"Fecha"`
+	Valor float64   `json:"Valor"`
+}
+
+type DatosImportar struct {
+	IdUsuario   int `json:"id_usuario"`
+	Movimientos []struct {
+		Fecha         string  `json:"fecha"`
+		Concepto      string  `json:"concepto"`
+		Categoria     string  `json:"categoria"`
+		Tipo          string  `json:"tipo"`
+		Valor         float64 `json:"valor"`
+		MetodoPago    string  `json:"metodo_pago"`
+		Observaciones string  `json:"observaciones"`
+	} `json:"movimientos"`
+}
+
+type DatosAbono struct {
+	Valor float64 `json:"valor"`
+}
+
+// FinanzasController operations for Finanzas
 type FinanzasController struct {
-	web.Controller
+	beego.Controller
 }
 
 // ============================================================
-// FINANZAS (panel principal)
+// GET /v1/resumen-financiero/:id
+// Ingresos, gastos, balance y gastos por categoria (crud_finanzas)
 // ============================================================
 
-// @Title Resumen financiero.
-// @Description Devuelve las tarjetas, la salud financiera, la dona de gastos, los últimos movimientos, las metas y las inversiones de un usuario.
-// @Param id path int true "Id del usuario"
-// @Success 200 {object} models.RespuestaResumenFinanciero
-// @Failure 400 {object} map[string]interface{} "Id inválido"
-// @Failure 404 {object} map[string]interface{} "El usuario no existe"
-// @Failure 502 {object} map[string]interface{} "Error al consultar los CRUD"
-// @Router /v1/resumen-financiero/:id [get]
-func (c *FinanzasController) ObtenerResumenFinanciero() {
-	idUsuario, err := strconv.Atoi(c.Ctx.Input.Param(":id"))
+func (c *FinanzasController) GetResumenFinanciero() {
 
-	if err != nil || idUsuario <= 0 {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "El id del usuario debe ser un número mayor que cero.",
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadRequest)
-		c.ServeJSON()
-		return
-	}
+	// --------------------------------------------------------
+	// 1. Obtener el ID enviado en la URL
+	// --------------------------------------------------------
 
-	crud := services.NewCrudFinanzasService()
-
-	_, err = crud.ObtenerUsuario(idUsuario)
-
-	if errors.Is(err, services.ErrNoEncontrado) {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "El usuario no existe.",
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusNotFound)
-		c.ServeJSON()
-		return
-	}
-
-	if err != nil {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "No fue posible consultar el usuario.",
-			"Error":   err.Error(),
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
-		c.ServeJSON()
-		return
-	}
-
-	categorias, err := crud.ObtenerCategorias()
-
-	if err != nil {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "No fue posible consultar las categorías.",
-			"Error":   err.Error(),
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
-		c.ServeJSON()
-		return
-	}
-
-	movimientos, err := crud.ObtenerMovimientos(idUsuario)
-
-	if err != nil {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "No fue posible consultar los movimientos.",
-			"Error":   err.Error(),
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
-		c.ServeJSON()
-		return
-	}
-
-	metas, err := crud.ObtenerMetas(idUsuario)
-
-	if err != nil {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "No fue posible consultar las metas.",
-			"Error":   err.Error(),
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
-		c.ServeJSON()
-		return
-	}
-
-	inversiones, err := crud.ObtenerInversiones(idUsuario)
-
-	if err != nil {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "No fue posible consultar las inversiones.",
-			"Error":   err.Error(),
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
-		c.ServeJSON()
-		return
-	}
-
-	niveles, err := crud.ObtenerNivelesRiesgo()
-
-	if err != nil {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "No fue posible consultar los niveles de riesgo.",
-			"Error":   err.Error(),
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
-		c.ServeJSON()
-		return
-	}
-
-	historial := crud.ObtenerHistorial()
-
-	// Cálculos
-	lista := services.ArmarMovimientos(movimientos, categorias)
-	totales := services.CalcularTotales(lista)
-	calculosMetas := services.CalcularMetas(metas)
-	calculosInversiones := services.CalcularInversiones(inversiones, niveles, historial)
-
-	respuesta := models.RespuestaResumenFinanciero{
-		OK:                 true,
-		Mensaje:            "Resumen financiero generado correctamente.",
-		IdUsuario:          idUsuario,
-		TotalIngresos:      totales.TotalIngresos,
-		TotalGastos:        totales.TotalGastos,
-		Disponible:         totales.Ahorro,
-		PorcentajeAhorro:   totales.PorcentajeAhorro,
-		Salud:              services.CalcularSalud(totales),
-		Distribucion:       services.CalcularDistribucion(lista),
-		UltimosMovimientos: services.PrimerosMovimientos(lista, 5),
-		Metas:              calculosMetas.Metas,
-		TotalInvertido:     calculosInversiones.BalanceInversiones,
-		GananciaEstimada:   calculosInversiones.RendimientoTotal,
-		Inversiones:        calculosInversiones.Inversiones,
-		Crecimiento:        calculosInversiones.Crecimiento,
-	}
-
-	c.Data["json"] = respuesta
-	c.Ctx.ResponseWriter.WriteHeader(http.StatusOK)
-	c.ServeJSON()
-}
-
-// @Title Categorías.
-// @Description Devuelve las categorías activas con su ícono (selects y filtros del Libro mayor).
-// @Success 200 {object} models.RespuestaCategorias
-// @Failure 502 {object} map[string]interface{} "Error al consultar el CRUD"
-// @Router /v1/categorias [get]
-func (c *FinanzasController) ObtenerCategorias() {
-	crud := services.NewCrudFinanzasService()
-
-	categorias, err := crud.ObtenerCategorias()
-
-	if err != nil {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "No fue posible consultar las categorías.",
-			"Error":   err.Error(),
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
-		c.ServeJSON()
-		return
-	}
-
-	respuesta := models.RespuestaCategorias{
-		OK:         true,
-		Mensaje:    "Categorías consultadas correctamente.",
-		Categorias: services.ArmarCategorias(categorias),
-	}
-
-	c.Data["json"] = respuesta
-	c.Ctx.ResponseWriter.WriteHeader(http.StatusOK)
-	c.ServeJSON()
-}
-
-// ============================================================
-// LIBRO MAYOR (movimiento_ingreso_egreso)
-// ============================================================
-
-// @Title Movimientos del usuario.
-// @Description Devuelve los movimientos de un usuario y sus totales. Acepta filtros opcionales en la URL.
-// @Param id path int true "Id del usuario"
-// @Param tipo query string false "todos, ingreso o gasto"
-// @Param categoria query string false "Nombre de la categoría"
-// @Param desde query string false "Fecha inicial AAAA-MM-DD"
-// @Param hasta query string false "Fecha final AAAA-MM-DD"
-// @Param q query string false "Texto a buscar en el concepto"
-// @Success 200 {object} models.RespuestaMovimientos
-// @Failure 400 {object} map[string]interface{} "Id o filtros inválidos"
-// @Failure 404 {object} map[string]interface{} "El usuario no existe"
-// @Failure 502 {object} map[string]interface{} "Error al consultar los CRUD"
-// @Router /v1/movimientos/usuario/:id [get]
-func (c *FinanzasController) ObtenerMovimientos() {
-	idUsuario, err := strconv.Atoi(c.Ctx.Input.Param(":id"))
-
-	if err != nil || idUsuario <= 0 {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "El id del usuario debe ser un número mayor que cero.",
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadRequest)
-		c.ServeJSON()
-		return
-	}
-
-	filtros, mensaje := c.leerFiltros()
-
-	if mensaje != "" {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": mensaje,
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadRequest)
-		c.ServeJSON()
-		return
-	}
-
-	crud := services.NewCrudFinanzasService()
-
-	_, err = crud.ObtenerUsuario(idUsuario)
-
-	if errors.Is(err, services.ErrNoEncontrado) {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "El usuario no existe.",
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusNotFound)
-		c.ServeJSON()
-		return
-	}
-
-	if err != nil {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "No fue posible consultar el usuario.",
-			"Error":   err.Error(),
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
-		c.ServeJSON()
-		return
-	}
-
-	movimientos, err := crud.ObtenerMovimientos(idUsuario)
-
-	if err != nil {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "No fue posible consultar los movimientos.",
-			"Error":   err.Error(),
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
-		c.ServeJSON()
-		return
-	}
-
-	categorias, err := crud.ObtenerCategorias()
-
-	if err != nil {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "No fue posible consultar las categorías.",
-			"Error":   err.Error(),
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
-		c.ServeJSON()
-		return
-	}
-
-	lista := services.FiltrarMovimientos(services.ArmarMovimientos(movimientos, categorias), filtros)
-
-	respuesta := models.RespuestaMovimientos{
-		OK:          true,
-		Mensaje:     "Movimientos consultados correctamente.",
-		Movimientos: lista,
-		Totales:     services.CalcularTotales(lista),
-	}
-
-	c.Data["json"] = respuesta
-	c.Ctx.ResponseWriter.WriteHeader(http.StatusOK)
-	c.ServeJSON()
-}
-
-// @Title Crear movimiento.
-// @Description Registra un ingreso o un gasto.
-// @Param body body models.SolicitudMovimiento true "Datos del movimiento"
-// @Success 201 {object} models.RespuestaMovimiento
-// @Failure 400 {object} map[string]interface{} "Solicitud inválida"
-// @Failure 404 {object} map[string]interface{} "El usuario no existe"
-// @Failure 502 {object} map[string]interface{} "Error al consultar los CRUD"
-// @Router /v1/movimientos [post]
-func (c *FinanzasController) CrearMovimiento() {
-	body := c.Ctx.Input.RequestBody
-
-	if len(body) == 0 {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "El cuerpo de la solicitud se encuentra vacío.",
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadRequest)
-		c.ServeJSON()
-		return
-	}
-
-	var solicitud models.SolicitudMovimiento
-
-	err := json.Unmarshal(body, &solicitud)
-
-	if err != nil {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "El cuerpo de la solicitud no tiene formato válido.",
-			"Error":   err.Error(),
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadRequest)
-		c.ServeJSON()
-		return
-	}
-
-	if solicitud.IdUsuario <= 0 {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "El id del usuario es obligatorio.",
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadRequest)
-		c.ServeJSON()
-		return
-	}
-
-	mensaje := validarMovimiento(&solicitud)
-
-	if mensaje != "" {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": mensaje,
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadRequest)
-		c.ServeJSON()
-		return
-	}
-
-	crud := services.NewCrudFinanzasService()
-
-	_, err = crud.ObtenerUsuario(solicitud.IdUsuario)
-
-	if errors.Is(err, services.ErrNoEncontrado) {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "El usuario no existe.",
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusNotFound)
-		c.ServeJSON()
-		return
-	}
-
-	if err != nil {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "No fue posible consultar el usuario.",
-			"Error":   err.Error(),
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
-		c.ServeJSON()
-		return
-	}
-
-	categorias, err := crud.ObtenerCategorias()
-
-	if err != nil {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "No fue posible consultar las categorías.",
-			"Error":   err.Error(),
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
-		c.ServeJSON()
-		return
-	}
-
-	categoria, err := services.BuscarCategoria(categorias, solicitud.Categoria)
-
-	if err != nil {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": err.Error(),
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadRequest)
-		c.ServeJSON()
-		return
-	}
-
-	movimiento := services.NuevoMovimiento(solicitud.IdUsuario, solicitud, categoria)
-
-	err = crud.Crear("movimiento_ingreso_egreso", &movimiento)
-
-	if err != nil {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "No fue posible guardar el movimiento.",
-			"Error":   err.Error(),
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
-		c.ServeJSON()
-		return
-	}
-
-	respuesta := models.RespuestaMovimiento{
-		OK:         true,
-		Mensaje:    "Movimiento creado correctamente.",
-		Movimiento: services.ArmarMovimiento(movimiento, categorias),
-	}
-
-	c.Data["json"] = respuesta
-	c.Ctx.ResponseWriter.WriteHeader(http.StatusCreated)
-	c.ServeJSON()
-}
-
-// @Title Editar movimiento.
-// @Description Edita un movimiento. Si no se envían metodoPago u observaciones, se dejan como estaban.
-// @Param id path int true "Id del movimiento"
-// @Param body body models.SolicitudMovimiento true "Datos del movimiento"
-// @Success 200 {object} models.RespuestaMovimiento
-// @Failure 400 {object} map[string]interface{} "Solicitud inválida"
-// @Failure 404 {object} map[string]interface{} "El movimiento no existe"
-// @Failure 502 {object} map[string]interface{} "Error al consultar los CRUD"
-// @Router /v1/movimientos/:id [put]
-func (c *FinanzasController) EditarMovimiento() {
 	id, err := strconv.Atoi(c.Ctx.Input.Param(":id"))
 
-	if err != nil || id <= 0 {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "El id del movimiento debe ser un número mayor que cero.",
-		}
+	if err != nil {
 		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadRequest)
+		c.Data["json"] = map[string]interface{}{"error": "El ID debe ser numerico"}
 		c.ServeJSON()
 		return
 	}
 
-	body := c.Ctx.Input.RequestBody
+	// --------------------------------------------------------
+	// 2. Consultar los movimientos del usuario (mas nuevos primero)
+	// --------------------------------------------------------
 
-	if len(body) == 0 {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "El cuerpo de la solicitud se encuentra vacío.",
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadRequest)
-		c.ServeJSON()
-		return
-	}
-
-	var solicitud models.SolicitudMovimiento
-
-	err = json.Unmarshal(body, &solicitud)
+	responseMovimientos, err := http.Get(fmt.Sprintf("%s/movimiento_ingreso_egreso?query=id_usuario:%d,activo:true&sortby=Fecha&order=desc&limit=10000", urlCrudFinanzas, id))
 
 	if err != nil {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "El cuerpo de la solicitud no tiene formato válido.",
-			"Error":   err.Error(),
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadRequest)
-		c.ServeJSON()
-		return
-	}
-
-	mensaje := validarMovimiento(&solicitud)
-
-	if mensaje != "" {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": mensaje,
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadRequest)
-		c.ServeJSON()
-		return
-	}
-
-	crud := services.NewCrudFinanzasService()
-
-	movimiento, err := crud.ObtenerMovimiento(id)
-
-	if errors.Is(err, services.ErrNoEncontrado) {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "El movimiento no existe.",
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusNotFound)
-		c.ServeJSON()
-		return
-	}
-
-	if err != nil {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "No fue posible consultar el movimiento.",
-			"Error":   err.Error(),
-		}
 		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
+		c.Data["json"] = map[string]interface{}{"error": "No fue posible comunicarse con la API de finanzas"}
 		c.ServeJSON()
 		return
 	}
 
-	categorias, err := crud.ObtenerCategorias()
+	defer responseMovimientos.Body.Close()
+
+	bodyMovimientos, _ := io.ReadAll(responseMovimientos.Body)
+
+	var movimientos []Movimiento
+	json.Unmarshal(bodyMovimientos, &movimientos)
+
+	// --------------------------------------------------------
+	// 3. Consultar las categorias (para saber nombre e icono)
+	// --------------------------------------------------------
+
+	responseCategorias, err := http.Get(urlCrudFinanzas + "/categoria?limit=1000")
 
 	if err != nil {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "No fue posible consultar las categorías.",
-			"Error":   err.Error(),
-		}
 		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
+		c.Data["json"] = map[string]interface{}{"error": "No fue posible consultar las categorias"}
 		c.ServeJSON()
 		return
 	}
 
-	categoria, err := services.BuscarCategoria(categorias, solicitud.Categoria)
+	defer responseCategorias.Body.Close()
 
-	if err != nil {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": err.Error(),
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadRequest)
-		c.ServeJSON()
-		return
+	bodyCategorias, _ := io.ReadAll(responseCategorias.Body)
+
+	var categorias []Categoria
+	json.Unmarshal(bodyCategorias, &categorias)
+
+	categoriaPorId := map[int]Categoria{}
+	for _, categoria := range categorias {
+		categoriaPorId[categoria.Id] = categoria
 	}
 
-	// Se conserva el mismo dueño y el mismo id
-	cambios := services.NuevoMovimiento(movimiento.IdUsuario, solicitud, categoria)
-	cambios.Id = movimiento.Id
+	// --------------------------------------------------------
+	// 4. Sumar ingresos y gastos, y los gastos de cada categoria
+	// --------------------------------------------------------
 
-	if solicitud.MetodoPago == nil {
-		cambios.MetodoPago = movimiento.MetodoPago
-	}
+	totalIngresos := 0.0
+	totalGastos := 0.0
+	gastoPorCategoria := map[int]float64{}
 
-	if solicitud.Observaciones == nil {
-		cambios.Observaciones = movimiento.Observaciones
-	}
+	for _, movimiento := range movimientos {
 
-	err = crud.Actualizar("movimiento_ingreso_egreso", id, cambios)
-
-	if err != nil {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "No fue posible actualizar el movimiento.",
-			"Error":   err.Error(),
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
-		c.ServeJSON()
-		return
-	}
-
-	respuesta := models.RespuestaMovimiento{
-		OK:         true,
-		Mensaje:    "Movimiento actualizado correctamente.",
-		Movimiento: services.ArmarMovimiento(cambios, categorias),
-	}
-
-	c.Data["json"] = respuesta
-	c.Ctx.ResponseWriter.WriteHeader(http.StatusOK)
-	c.ServeJSON()
-}
-
-// @Title Eliminar movimiento.
-// @Description Elimina un movimiento (queda con activo = false, no se borra de la base).
-// @Param id path int true "Id del movimiento"
-// @Success 200 {object} map[string]interface{} "Movimiento eliminado"
-// @Failure 400 {object} map[string]interface{} "Id inválido"
-// @Failure 404 {object} map[string]interface{} "El movimiento no existe"
-// @Failure 502 {object} map[string]interface{} "Error al consultar el CRUD"
-// @Router /v1/movimientos/:id [delete]
-func (c *FinanzasController) EliminarMovimiento() {
-	id, err := strconv.Atoi(c.Ctx.Input.Param(":id"))
-
-	if err != nil || id <= 0 {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "El id del movimiento debe ser un número mayor que cero.",
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadRequest)
-		c.ServeJSON()
-		return
-	}
-
-	crud := services.NewCrudFinanzasService()
-
-	movimiento, err := crud.ObtenerMovimiento(id)
-
-	if errors.Is(err, services.ErrNoEncontrado) {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "El movimiento no existe.",
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusNotFound)
-		c.ServeJSON()
-		return
-	}
-
-	if err != nil {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "No fue posible consultar el movimiento.",
-			"Error":   err.Error(),
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
-		c.ServeJSON()
-		return
-	}
-
-	movimiento.Activo = false
-
-	err = crud.Actualizar("movimiento_ingreso_egreso", id, movimiento)
-
-	if err != nil {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "No fue posible eliminar el movimiento.",
-			"Error":   err.Error(),
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
-		c.ServeJSON()
-		return
-	}
-
-	c.Data["json"] = map[string]interface{}{
-		"OK":      true,
-		"Mensaje": "Movimiento eliminado correctamente.",
-		"Id":      id,
-	}
-	c.Ctx.ResponseWriter.WriteHeader(http.StatusOK)
-	c.ServeJSON()
-}
-
-// @Title Importar movimientos.
-// @Description Carga masiva desde la plantilla de Excel. En modo "validar" solo revisa las filas; en modo "confirmar" guarda las válidas y, si una falla, borra las que ya guardó.
-// @Param body body models.SolicitudImportacion true "Usuario, modo y filas del Excel"
-// @Success 200 {object} models.RespuestaImportacion "Modo validar"
-// @Success 201 {object} models.RespuestaImportacion "Modo confirmar"
-// @Failure 400 {object} map[string]interface{} "Solicitud inválida"
-// @Failure 404 {object} map[string]interface{} "El usuario no existe"
-// @Failure 502 {object} map[string]interface{} "Error al consultar los CRUD"
-// @Router /v1/movimientos/importar [post]
-func (c *FinanzasController) ImportarMovimientos() {
-	body := c.Ctx.Input.RequestBody
-
-	if len(body) == 0 {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "El cuerpo de la solicitud se encuentra vacío.",
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadRequest)
-		c.ServeJSON()
-		return
-	}
-
-	var solicitud models.SolicitudImportacion
-
-	err := json.Unmarshal(body, &solicitud)
-
-	if err != nil {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "El cuerpo de la solicitud no tiene formato válido.",
-			"Error":   err.Error(),
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadRequest)
-		c.ServeJSON()
-		return
-	}
-
-	solicitud.Modo = strings.ToLower(strings.TrimSpace(solicitud.Modo))
-
-	if solicitud.Modo != "validar" && solicitud.Modo != "confirmar" {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "El modo debe ser validar o confirmar.",
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadRequest)
-		c.ServeJSON()
-		return
-	}
-
-	if solicitud.IdUsuario <= 0 {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "El id del usuario es obligatorio.",
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadRequest)
-		c.ServeJSON()
-		return
-	}
-
-	if len(solicitud.Filas) == 0 {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "Debe ingresar al menos una fila para importar.",
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadRequest)
-		c.ServeJSON()
-		return
-	}
-
-	crud := services.NewCrudFinanzasService()
-
-	_, err = crud.ObtenerUsuario(solicitud.IdUsuario)
-
-	if errors.Is(err, services.ErrNoEncontrado) {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "El usuario no existe.",
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusNotFound)
-		c.ServeJSON()
-		return
-	}
-
-	if err != nil {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "No fue posible consultar el usuario.",
-			"Error":   err.Error(),
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
-		c.ServeJSON()
-		return
-	}
-
-	categorias, err := crud.ObtenerCategorias()
-
-	if err != nil {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "No fue posible consultar las categorías.",
-			"Error":   err.Error(),
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
-		c.ServeJSON()
-		return
-	}
-
-	// Revisar fila por fila: las buenas van a "validos" y las malas a "errores"
-	validos := []models.MovimientoIngresoEgreso{}
-	errores := []models.ResultadoErrorFila{}
-	hoy := time.Now().Format("2006-01-02")
-
-	for i, fila := range solicitud.Filas {
-		if strings.TrimSpace(fila.Fecha) == "" {
-			fila.Fecha = hoy
-		}
-
-		mensaje := validarMovimiento(&fila)
-
-		if mensaje != "" {
-			errores = append(errores, models.ResultadoErrorFila{
-				Fila:     i + 1,
-				Concepto: fila.Concepto,
-				Motivo:   mensaje,
-			})
+		if movimiento.EsIngreso {
+			totalIngresos += movimiento.Monto
 			continue
 		}
 
-		categoria, err := services.BuscarCategoria(categorias, fila.Categoria)
+		totalGastos += movimiento.Monto
+
+		if movimiento.IdCategoria != nil {
+			gastoPorCategoria[movimiento.IdCategoria.Id] += movimiento.Monto
+		}
+	}
+
+	// --------------------------------------------------------
+	// 5. Armar la lista de gastos por categoria con su porcentaje
+	// --------------------------------------------------------
+
+	distribucion := []map[string]interface{}{}
+
+	for idCategoria, total := range gastoPorCategoria {
+
+		porcentaje := 0.0
+		if totalGastos > 0 {
+			porcentaje = math.Round(total / totalGastos * 100)
+		}
+
+		distribucion = append(distribucion, map[string]interface{}{
+			"categoria":  categoriaPorId[idCategoria].Nombre,
+			"icono":      categoriaPorId[idCategoria].Icono,
+			"total":      total,
+			"porcentaje": porcentaje,
+		})
+	}
+
+	// --------------------------------------------------------
+	// 6. Tomar los ultimos 5 movimientos
+	// --------------------------------------------------------
+
+	ultimos := []map[string]interface{}{}
+
+	for i, movimiento := range movimientos {
+
+		if i == 5 {
+			break
+		}
+
+		tipo := "gasto"
+		if movimiento.EsIngreso {
+			tipo = "ingreso"
+		}
+
+		nombreCategoria := ""
+		if movimiento.IdCategoria != nil {
+			nombreCategoria = categoriaPorId[movimiento.IdCategoria.Id].Nombre
+		}
+
+		ultimos = append(ultimos, map[string]interface{}{
+			"id":        movimiento.Id,
+			"fecha":     movimiento.Fecha.Format("2006-01-02"),
+			"concepto":  movimiento.Nombre,
+			"categoria": nombreCategoria,
+			"tipo":      tipo,
+			"valor":     movimiento.Monto,
+		})
+	}
+
+	// --------------------------------------------------------
+	// 7. Devolver el resumen
+	// --------------------------------------------------------
+
+	c.Data["json"] = map[string]interface{}{
+		"id_usuario":          id,
+		"total_ingresos":      totalIngresos,
+		"total_gastos":        totalGastos,
+		"balance":             totalIngresos - totalGastos,
+		"gastos_categoria":    distribucion,
+		"ultimos_movimientos": ultimos,
+	}
+
+	c.ServeJSON()
+}
+
+// ============================================================
+// GET /v1/movimientos/usuario/:id
+// Libro mayor de un usuario con nombre e icono de la categoria.
+// Filtros opcionales: ?tipo=ingreso|gasto  ?categoria=<id>
+// ============================================================
+
+func (c *FinanzasController) GetMovimientos() {
+
+	// --------------------------------------------------------
+	// 1. Obtener el ID y los filtros enviados en la URL
+	// --------------------------------------------------------
+
+	id, err := strconv.Atoi(c.Ctx.Input.Param(":id"))
+
+	if err != nil {
+		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadRequest)
+		c.Data["json"] = map[string]interface{}{"error": "El ID debe ser numerico"}
+		c.ServeJSON()
+		return
+	}
+
+	filtro := fmt.Sprintf("id_usuario:%d,activo:true", id)
+
+	if c.GetString("tipo") == "ingreso" {
+		filtro += ",es_ingreso:true"
+	}
+
+	if c.GetString("tipo") == "gasto" {
+		filtro += ",es_ingreso:false"
+	}
+
+	if idCategoria, err := c.GetInt("categoria"); err == nil {
+		filtro += fmt.Sprintf(",id_categoria:%d", idCategoria)
+	}
+
+	// --------------------------------------------------------
+	// 2. Consultar los movimientos con esos filtros
+	// --------------------------------------------------------
+
+	responseMovimientos, err := http.Get(urlCrudFinanzas + "/movimiento_ingreso_egreso?query=" + filtro + "&sortby=Fecha&order=desc&limit=10000")
+
+	if err != nil {
+		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
+		c.Data["json"] = map[string]interface{}{"error": "No fue posible comunicarse con la API de finanzas"}
+		c.ServeJSON()
+		return
+	}
+
+	defer responseMovimientos.Body.Close()
+
+	bodyMovimientos, _ := io.ReadAll(responseMovimientos.Body)
+
+	var movimientos []Movimiento
+	json.Unmarshal(bodyMovimientos, &movimientos)
+
+	// --------------------------------------------------------
+	// 3. Consultar las categorias
+	// --------------------------------------------------------
+
+	responseCategorias, err := http.Get(urlCrudFinanzas + "/categoria?limit=1000")
+
+	if err != nil {
+		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
+		c.Data["json"] = map[string]interface{}{"error": "No fue posible consultar las categorias"}
+		c.ServeJSON()
+		return
+	}
+
+	defer responseCategorias.Body.Close()
+
+	bodyCategorias, _ := io.ReadAll(responseCategorias.Body)
+
+	var categorias []Categoria
+	json.Unmarshal(bodyCategorias, &categorias)
+
+	categoriaPorId := map[int]Categoria{}
+	for _, categoria := range categorias {
+		categoriaPorId[categoria.Id] = categoria
+	}
+
+	// --------------------------------------------------------
+	// 4. Construir la lista como la usa la pagina
+	// --------------------------------------------------------
+
+	lista := []map[string]interface{}{}
+
+	for _, movimiento := range movimientos {
+
+		tipo := "gasto"
+		if movimiento.EsIngreso {
+			tipo = "ingreso"
+		}
+
+		categoria := Categoria{}
+		if movimiento.IdCategoria != nil {
+			categoria = categoriaPorId[movimiento.IdCategoria.Id]
+		}
+
+		lista = append(lista, map[string]interface{}{
+			"id":            movimiento.Id,
+			"fecha":         movimiento.Fecha.Format("2006-01-02"),
+			"concepto":      movimiento.Nombre,
+			"id_categoria":  categoria.Id,
+			"categoria":     categoria.Nombre,
+			"icono":         categoria.Icono,
+			"tipo":          tipo,
+			"valor":         movimiento.Monto,
+			"metodo_pago":   movimiento.MetodoPago,
+			"observaciones": movimiento.Observaciones,
+		})
+	}
+
+	// --------------------------------------------------------
+	// 5. Devolver la lista
+	// --------------------------------------------------------
+
+	c.Data["json"] = lista
+	c.ServeJSON()
+}
+
+// ============================================================
+// POST /v1/movimientos/importar
+// Guarda varios movimientos de una vez (plantilla de Excel).
+// Devuelve cuantos se guardaron y que filas tuvieron error.
+// ============================================================
+
+func (c *FinanzasController) PostImportarMovimientos() {
+
+	// --------------------------------------------------------
+	// 1. Leer los datos enviados
+	// --------------------------------------------------------
+
+	var datos DatosImportar
+
+	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &datos); err != nil {
+		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadRequest)
+		c.Data["json"] = map[string]interface{}{"error": "El cuerpo de la peticion no es un JSON valido"}
+		c.ServeJSON()
+		return
+	}
+
+	if len(datos.Movimientos) == 0 {
+		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadRequest)
+		c.Data["json"] = map[string]interface{}{"error": "No llego ningun movimiento"}
+		c.ServeJSON()
+		return
+	}
+
+	// --------------------------------------------------------
+	// 2. Consultar las categorias para buscarlas por nombre
+	// --------------------------------------------------------
+
+	responseCategorias, err := http.Get(urlCrudFinanzas + "/categoria?limit=1000")
+
+	if err != nil {
+		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
+		c.Data["json"] = map[string]interface{}{"error": "No fue posible comunicarse con la API de finanzas"}
+		c.ServeJSON()
+		return
+	}
+
+	defer responseCategorias.Body.Close()
+
+	bodyCategorias, _ := io.ReadAll(responseCategorias.Body)
+
+	var categorias []Categoria
+	json.Unmarshal(bodyCategorias, &categorias)
+
+	categoriaPorNombre := map[string]int{}
+	for _, categoria := range categorias {
+		categoriaPorNombre[strings.ToLower(categoria.Nombre)] = categoria.Id
+	}
+
+	// --------------------------------------------------------
+	// 3. Revisar y guardar cada fila
+	// --------------------------------------------------------
+
+	guardados := 0
+	errores := []string{}
+
+	for i, fila := range datos.Movimientos {
+
+		numeroFila := i + 1
+
+		fecha, err := time.Parse("2006-01-02", fila.Fecha)
 
 		if err != nil {
-			errores = append(errores, models.ResultadoErrorFila{
-				Fila:     i + 1,
-				Concepto: fila.Concepto,
-				Motivo:   err.Error(),
-			})
+			errores = append(errores, fmt.Sprintf("Fila %d: la fecha debe ser AAAA-MM-DD", numeroFila))
 			continue
 		}
 
-		validos = append(validos, services.NuevoMovimiento(solicitud.IdUsuario, fila, categoria))
-	}
-
-	respuesta := models.RespuestaImportacion{
-		OK:      true,
-		Modo:    solicitud.Modo,
-		Validos: len(validos),
-		Errores: errores,
-	}
-
-	// En modo "validar" solo se informa, no se guarda nada
-	if solicitud.Modo == "validar" {
-		respuesta.Mensaje = "Validación terminada."
-
-		c.Data["json"] = respuesta
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusOK)
-		c.ServeJSON()
-		return
-	}
-
-	if len(validos) == 0 {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "Ninguna fila es válida, no se importó nada.",
-			"Errores": errores,
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadRequest)
-		c.ServeJSON()
-		return
-	}
-
-	// Modo "confirmar": guardar una por una; si una falla, deshacer las anteriores
-	guardados := []int{}
-
-	for i := range validos {
-		err = crud.Crear("movimiento_ingreso_egreso", &validos[i])
-
-		if err != nil {
-			for _, idGuardado := range guardados {
-				crud.Borrar("movimiento_ingreso_egreso", idGuardado)
-			}
-
-			c.Data["json"] = map[string]interface{}{
-				"OK":      false,
-				"Mensaje": "No fue posible guardar el movimiento \"" + validos[i].Nombre + "\". No se importó ninguna fila.",
-				"Error":   err.Error(),
-			}
-			c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
-			c.ServeJSON()
-			return
-		}
-
-		guardados = append(guardados, validos[i].Id)
-	}
-
-	respuesta.Mensaje = "Movimientos importados correctamente."
-	respuesta.Guardados = len(guardados)
-
-	c.Data["json"] = respuesta
-	c.Ctx.ResponseWriter.WriteHeader(http.StatusCreated)
-	c.ServeJSON()
-}
-
-// ============================================================
-// METAS (meta)
-// ============================================================
-
-// @Title Metas del usuario.
-// @Description Devuelve las metas de un usuario con su porcentaje, lo que falta y si están cumplidas, más los totales.
-// @Param id path int true "Id del usuario"
-// @Success 200 {object} models.RespuestaMetas
-// @Failure 400 {object} map[string]interface{} "Id inválido"
-// @Failure 404 {object} map[string]interface{} "El usuario no existe"
-// @Failure 502 {object} map[string]interface{} "Error al consultar los CRUD"
-// @Router /v1/metas/usuario/:id [get]
-func (c *FinanzasController) ObtenerMetas() {
-	idUsuario, err := strconv.Atoi(c.Ctx.Input.Param(":id"))
-
-	if err != nil || idUsuario <= 0 {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "El id del usuario debe ser un número mayor que cero.",
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadRequest)
-		c.ServeJSON()
-		return
-	}
-
-	crud := services.NewCrudFinanzasService()
-
-	_, err = crud.ObtenerUsuario(idUsuario)
-
-	if errors.Is(err, services.ErrNoEncontrado) {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "El usuario no existe.",
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusNotFound)
-		c.ServeJSON()
-		return
-	}
-
-	if err != nil {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "No fue posible consultar el usuario.",
-			"Error":   err.Error(),
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
-		c.ServeJSON()
-		return
-	}
-
-	metas, err := crud.ObtenerMetas(idUsuario)
-
-	if err != nil {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "No fue posible consultar las metas.",
-			"Error":   err.Error(),
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
-		c.ServeJSON()
-		return
-	}
-
-	calculos := services.CalcularMetas(metas)
-
-	respuesta := models.RespuestaMetas{
-		OK:              true,
-		Mensaje:         "Metas consultadas correctamente.",
-		Metas:           calculos.Metas,
-		TotalMetas:      calculos.TotalMetas,
-		MetasAlcanzadas: calculos.MetasAlcanzadas,
-		TotalAhorrado:   calculos.TotalAhorrado,
-		TotalObjetivo:   calculos.TotalObjetivo,
-		ProgresoGeneral: calculos.ProgresoGeneral,
-	}
-
-	c.Data["json"] = respuesta
-	c.Ctx.ResponseWriter.WriteHeader(http.StatusOK)
-	c.ServeJSON()
-}
-
-// @Title Crear meta.
-// @Description Crea una meta de ahorro. Si no se envía ícono se usa 🎯.
-// @Param body body models.SolicitudMeta true "Datos de la meta"
-// @Success 201 {object} models.RespuestaMeta
-// @Failure 400 {object} map[string]interface{} "Solicitud inválida"
-// @Failure 404 {object} map[string]interface{} "El usuario no existe"
-// @Failure 502 {object} map[string]interface{} "Error al consultar los CRUD"
-// @Router /v1/metas [post]
-func (c *FinanzasController) CrearMeta() {
-	body := c.Ctx.Input.RequestBody
-
-	if len(body) == 0 {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "El cuerpo de la solicitud se encuentra vacío.",
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadRequest)
-		c.ServeJSON()
-		return
-	}
-
-	var solicitud models.SolicitudMeta
-
-	err := json.Unmarshal(body, &solicitud)
-
-	if err != nil {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "El cuerpo de la solicitud no tiene formato válido.",
-			"Error":   err.Error(),
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadRequest)
-		c.ServeJSON()
-		return
-	}
-
-	if solicitud.IdUsuario <= 0 {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "El id del usuario es obligatorio.",
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadRequest)
-		c.ServeJSON()
-		return
-	}
-
-	mensaje := validarMeta(&solicitud)
-
-	if mensaje != "" {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": mensaje,
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadRequest)
-		c.ServeJSON()
-		return
-	}
-
-	crud := services.NewCrudFinanzasService()
-
-	_, err = crud.ObtenerUsuario(solicitud.IdUsuario)
-
-	if errors.Is(err, services.ErrNoEncontrado) {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "El usuario no existe.",
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusNotFound)
-		c.ServeJSON()
-		return
-	}
-
-	if err != nil {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "No fue posible consultar el usuario.",
-			"Error":   err.Error(),
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
-		c.ServeJSON()
-		return
-	}
-
-	// El formulario "Nueva meta" no usa editar_meta: IdEditarMeta queda vacío
-	meta := models.Meta{
-		IdUsuario:     solicitud.IdUsuario,
-		Nombre:        solicitud.Nombre,
-		Icono:         solicitud.Icono,
-		MontoObjetivo: solicitud.Objetivo,
-		MontoActual:   solicitud.Actual,
-		Activo:        true,
-	}
-
-	err = crud.Crear("meta", &meta)
-
-	if err != nil {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "No fue posible guardar la meta.",
-			"Error":   err.Error(),
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
-		c.ServeJSON()
-		return
-	}
-
-	respuesta := models.RespuestaMeta{
-		OK:      true,
-		Mensaje: "Meta creada correctamente.",
-		Meta:    services.ArmarMeta(meta),
-	}
-
-	c.Data["json"] = respuesta
-	c.Ctx.ResponseWriter.WriteHeader(http.StatusCreated)
-	c.ServeJSON()
-}
-
-// @Title Editar meta.
-// @Description Edita el nombre, el ícono, el monto actual y el objetivo de una meta.
-// @Param id path int true "Id de la meta"
-// @Param body body models.SolicitudMeta true "Datos de la meta"
-// @Success 200 {object} models.RespuestaMeta
-// @Failure 400 {object} map[string]interface{} "Solicitud inválida"
-// @Failure 404 {object} map[string]interface{} "La meta no existe"
-// @Failure 502 {object} map[string]interface{} "Error al consultar el CRUD"
-// @Router /v1/metas/:id [put]
-func (c *FinanzasController) EditarMeta() {
-	id, err := strconv.Atoi(c.Ctx.Input.Param(":id"))
-
-	if err != nil || id <= 0 {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "El id de la meta debe ser un número mayor que cero.",
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadRequest)
-		c.ServeJSON()
-		return
-	}
-
-	body := c.Ctx.Input.RequestBody
-
-	if len(body) == 0 {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "El cuerpo de la solicitud se encuentra vacío.",
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadRequest)
-		c.ServeJSON()
-		return
-	}
-
-	var solicitud models.SolicitudMeta
-
-	err = json.Unmarshal(body, &solicitud)
-
-	if err != nil {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "El cuerpo de la solicitud no tiene formato válido.",
-			"Error":   err.Error(),
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadRequest)
-		c.ServeJSON()
-		return
-	}
-
-	mensaje := validarMeta(&solicitud)
-
-	if mensaje != "" {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": mensaje,
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadRequest)
-		c.ServeJSON()
-		return
-	}
-
-	crud := services.NewCrudFinanzasService()
-
-	meta, err := crud.ObtenerMeta(id)
-
-	if errors.Is(err, services.ErrNoEncontrado) {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "La meta no existe.",
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusNotFound)
-		c.ServeJSON()
-		return
-	}
-
-	if err != nil {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "No fue posible consultar la meta.",
-			"Error":   err.Error(),
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
-		c.ServeJSON()
-		return
-	}
-
-	meta.Nombre = solicitud.Nombre
-	meta.MontoObjetivo = solicitud.Objetivo
-	meta.MontoActual = solicitud.Actual
-	meta.Icono = solicitud.Icono
-
-	err = crud.Actualizar("meta", id, meta)
-
-	if err != nil {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "No fue posible actualizar la meta.",
-			"Error":   err.Error(),
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
-		c.ServeJSON()
-		return
-	}
-
-	respuesta := models.RespuestaMeta{
-		OK:      true,
-		Mensaje: "Meta actualizada correctamente.",
-		Meta:    services.ArmarMeta(meta),
-	}
-
-	c.Data["json"] = respuesta
-	c.Ctx.ResponseWriter.WriteHeader(http.StatusOK)
-	c.ServeJSON()
-}
-
-// @Title Abonar a una meta.
-// @Description Suma un abono al monto que lleva ahorrado la meta.
-// @Param id path int true "Id de la meta"
-// @Param body body models.SolicitudAbono true "Monto del abono"
-// @Success 200 {object} models.RespuestaMeta
-// @Failure 400 {object} map[string]interface{} "Solicitud inválida"
-// @Failure 404 {object} map[string]interface{} "La meta no existe"
-// @Failure 502 {object} map[string]interface{} "Error al consultar el CRUD"
-// @Router /v1/metas/:id/abono [put]
-func (c *FinanzasController) AbonarMeta() {
-	id, err := strconv.Atoi(c.Ctx.Input.Param(":id"))
-
-	if err != nil || id <= 0 {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "El id de la meta debe ser un número mayor que cero.",
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadRequest)
-		c.ServeJSON()
-		return
-	}
-
-	body := c.Ctx.Input.RequestBody
-
-	if len(body) == 0 {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "El cuerpo de la solicitud se encuentra vacío.",
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadRequest)
-		c.ServeJSON()
-		return
-	}
-
-	var solicitud models.SolicitudAbono
-
-	err = json.Unmarshal(body, &solicitud)
-
-	if err != nil {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "El cuerpo de la solicitud no tiene formato válido.",
-			"Error":   err.Error(),
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadRequest)
-		c.ServeJSON()
-		return
-	}
-
-	if solicitud.Monto <= 0 {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "El monto del abono debe ser mayor a cero.",
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadRequest)
-		c.ServeJSON()
-		return
-	}
-
-	crud := services.NewCrudFinanzasService()
-
-	meta, err := crud.ObtenerMeta(id)
-
-	if errors.Is(err, services.ErrNoEncontrado) {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "La meta no existe.",
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusNotFound)
-		c.ServeJSON()
-		return
-	}
-
-	if err != nil {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "No fue posible consultar la meta.",
-			"Error":   err.Error(),
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
-		c.ServeJSON()
-		return
-	}
-
-	meta.MontoActual += solicitud.Monto
-
-	err = crud.Actualizar("meta", id, meta)
-
-	if err != nil {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "No fue posible registrar el abono.",
-			"Error":   err.Error(),
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
-		c.ServeJSON()
-		return
-	}
-
-	respuesta := models.RespuestaMeta{
-		OK:      true,
-		Mensaje: "Abono registrado correctamente.",
-		Meta:    services.ArmarMeta(meta),
-	}
-
-	c.Data["json"] = respuesta
-	c.Ctx.ResponseWriter.WriteHeader(http.StatusOK)
-	c.ServeJSON()
-}
-
-// @Title Eliminar meta.
-// @Description Elimina una meta (queda con activo = false, no se borra de la base).
-// @Param id path int true "Id de la meta"
-// @Success 200 {object} map[string]interface{} "Meta eliminada"
-// @Failure 400 {object} map[string]interface{} "Id inválido"
-// @Failure 404 {object} map[string]interface{} "La meta no existe"
-// @Failure 502 {object} map[string]interface{} "Error al consultar el CRUD"
-// @Router /v1/metas/:id [delete]
-func (c *FinanzasController) EliminarMeta() {
-	id, err := strconv.Atoi(c.Ctx.Input.Param(":id"))
-
-	if err != nil || id <= 0 {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "El id de la meta debe ser un número mayor que cero.",
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadRequest)
-		c.ServeJSON()
-		return
-	}
-
-	crud := services.NewCrudFinanzasService()
-
-	meta, err := crud.ObtenerMeta(id)
-
-	if errors.Is(err, services.ErrNoEncontrado) {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "La meta no existe.",
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusNotFound)
-		c.ServeJSON()
-		return
-	}
-
-	if err != nil {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "No fue posible consultar la meta.",
-			"Error":   err.Error(),
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
-		c.ServeJSON()
-		return
-	}
-
-	meta.Activo = false
-
-	err = crud.Actualizar("meta", id, meta)
-
-	if err != nil {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "No fue posible eliminar la meta.",
-			"Error":   err.Error(),
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
-		c.ServeJSON()
-		return
-	}
-
-	c.Data["json"] = map[string]interface{}{
-		"OK":      true,
-		"Mensaje": "Meta eliminada correctamente.",
-		"Id":      id,
-	}
-	c.Ctx.ResponseWriter.WriteHeader(http.StatusOK)
-	c.ServeJSON()
-}
-
-// ============================================================
-// INVERSIONES (inversion, nivel_riesgo, historial_inversion)
-// ============================================================
-
-// @Title Inversiones del usuario.
-// @Description Devuelve las inversiones de un usuario con el total invertido, el rendimiento, el reparto por riesgo, la alerta de concentración y la gráfica de crecimiento.
-// @Param id path int true "Id del usuario"
-// @Success 200 {object} models.RespuestaInversiones
-// @Failure 400 {object} map[string]interface{} "Id inválido"
-// @Failure 404 {object} map[string]interface{} "El usuario no existe"
-// @Failure 502 {object} map[string]interface{} "Error al consultar los CRUD"
-// @Router /v1/inversiones/usuario/:id [get]
-func (c *FinanzasController) ObtenerInversiones() {
-	idUsuario, err := strconv.Atoi(c.Ctx.Input.Param(":id"))
-
-	if err != nil || idUsuario <= 0 {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "El id del usuario debe ser un número mayor que cero.",
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadRequest)
-		c.ServeJSON()
-		return
-	}
-
-	crud := services.NewCrudFinanzasService()
-
-	_, err = crud.ObtenerUsuario(idUsuario)
-
-	if errors.Is(err, services.ErrNoEncontrado) {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "El usuario no existe.",
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusNotFound)
-		c.ServeJSON()
-		return
-	}
-
-	if err != nil {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "No fue posible consultar el usuario.",
-			"Error":   err.Error(),
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
-		c.ServeJSON()
-		return
-	}
-
-	inversiones, err := crud.ObtenerInversiones(idUsuario)
-
-	if err != nil {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "No fue posible consultar las inversiones.",
-			"Error":   err.Error(),
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
-		c.ServeJSON()
-		return
-	}
-
-	niveles, err := crud.ObtenerNivelesRiesgo()
-
-	if err != nil {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "No fue posible consultar los niveles de riesgo.",
-			"Error":   err.Error(),
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
-		c.ServeJSON()
-		return
-	}
-
-	calculos := services.CalcularInversiones(inversiones, niveles, crud.ObtenerHistorial())
-
-	respuesta := models.RespuestaInversiones{
-		OK:                    true,
-		Mensaje:               "Inversiones consultadas correctamente.",
-		Inversiones:           calculos.Inversiones,
-		BalanceInversiones:    calculos.BalanceInversiones,
-		RendimientoTotal:      calculos.RendimientoTotal,
-		RendimientoPorcentaje: calculos.RendimientoPorcentaje,
-		TotalPorRiesgo:        calculos.TotalPorRiesgo,
-		AlertaConcentracion:   calculos.AlertaConcentracion,
-		Carteras:              calculos.Carteras,
-		Crecimiento:           calculos.Crecimiento,
-	}
-
-	c.Data["json"] = respuesta
-	c.Ctx.ResponseWriter.WriteHeader(http.StatusOK)
-	c.ServeJSON()
-}
-
-// @Title Crear inversión.
-// @Description Crea una inversión. La rentabilidad (%) se calcula con el rendimiento en pesos.
-// @Param body body models.SolicitudInversion true "Datos de la inversión"
-// @Success 201 {object} models.RespuestaInversion
-// @Failure 400 {object} map[string]interface{} "Solicitud inválida"
-// @Failure 404 {object} map[string]interface{} "El usuario no existe"
-// @Failure 502 {object} map[string]interface{} "Error al consultar los CRUD"
-// @Router /v1/inversiones [post]
-func (c *FinanzasController) CrearInversion() {
-	body := c.Ctx.Input.RequestBody
-
-	if len(body) == 0 {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "El cuerpo de la solicitud se encuentra vacío.",
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadRequest)
-		c.ServeJSON()
-		return
-	}
-
-	var solicitud models.SolicitudInversion
-
-	err := json.Unmarshal(body, &solicitud)
-
-	if err != nil {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "El cuerpo de la solicitud no tiene formato válido.",
-			"Error":   err.Error(),
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadRequest)
-		c.ServeJSON()
-		return
-	}
-
-	if solicitud.IdUsuario <= 0 {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "El id del usuario es obligatorio.",
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadRequest)
-		c.ServeJSON()
-		return
-	}
-
-	mensaje := validarInversion(&solicitud)
-
-	if mensaje != "" {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": mensaje,
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadRequest)
-		c.ServeJSON()
-		return
-	}
-
-	crud := services.NewCrudFinanzasService()
-
-	_, err = crud.ObtenerUsuario(solicitud.IdUsuario)
-
-	if errors.Is(err, services.ErrNoEncontrado) {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "El usuario no existe.",
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusNotFound)
-		c.ServeJSON()
-		return
-	}
-
-	if err != nil {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "No fue posible consultar el usuario.",
-			"Error":   err.Error(),
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
-		c.ServeJSON()
-		return
-	}
-
-	niveles, err := crud.ObtenerNivelesRiesgo()
-
-	if err != nil {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "No fue posible consultar los niveles de riesgo.",
-			"Error":   err.Error(),
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
-		c.ServeJSON()
-		return
-	}
-
-	nivel, err := services.BuscarNivelRiesgo(niveles, solicitud.Riesgo)
-
-	if err != nil {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": err.Error(),
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadRequest)
-		c.ServeJSON()
-		return
-	}
-
-	inversion := models.Inversion{
-		IdUsuario:     solicitud.IdUsuario,
-		IdNivelRiesgo: &models.Ref{Id: nivel.Id},
-		Nombre:        solicitud.Nombre,
-		Monto:         solicitud.Monto,
-		Rendimiento:   solicitud.Rendimiento,
-		Rentabilidad:  services.CalcularRentabilidad(solicitud.Rendimiento, solicitud.Monto),
-		Duracion:      solicitud.Duracion,
-		FechaInicio:   time.Now(),
-		Activo:        true,
-	}
-
-	err = crud.Crear("inversion", &inversion)
-
-	if err != nil {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "No fue posible guardar la inversión.",
-			"Error":   err.Error(),
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
-		c.ServeJSON()
-		return
-	}
-
-	respuesta := models.RespuestaInversion{
-		OK:        true,
-		Mensaje:   "Inversión creada correctamente.",
-		Inversion: services.ArmarInversion(inversion, niveles),
-	}
-
-	c.Data["json"] = respuesta
-	c.Ctx.ResponseWriter.WriteHeader(http.StatusCreated)
-	c.ServeJSON()
-}
-
-// @Title Editar inversión.
-// @Description Edita una inversión.
-// @Param id path int true "Id de la inversión"
-// @Param body body models.SolicitudInversion true "Datos de la inversión"
-// @Success 200 {object} models.RespuestaInversion
-// @Failure 400 {object} map[string]interface{} "Solicitud inválida"
-// @Failure 404 {object} map[string]interface{} "La inversión no existe"
-// @Failure 502 {object} map[string]interface{} "Error al consultar el CRUD"
-// @Router /v1/inversiones/:id [put]
-func (c *FinanzasController) EditarInversion() {
-	id, err := strconv.Atoi(c.Ctx.Input.Param(":id"))
-
-	if err != nil || id <= 0 {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "El id de la inversión debe ser un número mayor que cero.",
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadRequest)
-		c.ServeJSON()
-		return
-	}
-
-	body := c.Ctx.Input.RequestBody
-
-	if len(body) == 0 {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "El cuerpo de la solicitud se encuentra vacío.",
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadRequest)
-		c.ServeJSON()
-		return
-	}
-
-	var solicitud models.SolicitudInversion
-
-	err = json.Unmarshal(body, &solicitud)
-
-	if err != nil {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "El cuerpo de la solicitud no tiene formato válido.",
-			"Error":   err.Error(),
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadRequest)
-		c.ServeJSON()
-		return
-	}
-
-	mensaje := validarInversion(&solicitud)
-
-	if mensaje != "" {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": mensaje,
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadRequest)
-		c.ServeJSON()
-		return
-	}
-
-	crud := services.NewCrudFinanzasService()
-
-	inversion, err := crud.ObtenerInversion(id)
-
-	if errors.Is(err, services.ErrNoEncontrado) {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "La inversión no existe.",
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusNotFound)
-		c.ServeJSON()
-		return
-	}
-
-	if err != nil {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "No fue posible consultar la inversión.",
-			"Error":   err.Error(),
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
-		c.ServeJSON()
-		return
-	}
-
-	niveles, err := crud.ObtenerNivelesRiesgo()
-
-	if err != nil {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "No fue posible consultar los niveles de riesgo.",
-			"Error":   err.Error(),
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
-		c.ServeJSON()
-		return
-	}
-
-	nivel, err := services.BuscarNivelRiesgo(niveles, solicitud.Riesgo)
-
-	if err != nil {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": err.Error(),
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadRequest)
-		c.ServeJSON()
-		return
-	}
-
-	inversion.Nombre = solicitud.Nombre
-	inversion.Monto = solicitud.Monto
-	inversion.Rendimiento = solicitud.Rendimiento
-	inversion.Rentabilidad = services.CalcularRentabilidad(solicitud.Rendimiento, solicitud.Monto)
-	inversion.Duracion = solicitud.Duracion
-	inversion.IdNivelRiesgo = &models.Ref{Id: nivel.Id}
-
-	err = crud.Actualizar("inversion", id, inversion)
-
-	if err != nil {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "No fue posible actualizar la inversión.",
-			"Error":   err.Error(),
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
-		c.ServeJSON()
-		return
-	}
-
-	respuesta := models.RespuestaInversion{
-		OK:        true,
-		Mensaje:   "Inversión actualizada correctamente.",
-		Inversion: services.ArmarInversion(inversion, niveles),
-	}
-
-	c.Data["json"] = respuesta
-	c.Ctx.ResponseWriter.WriteHeader(http.StatusOK)
-	c.ServeJSON()
-}
-
-// @Title Eliminar inversión.
-// @Description Elimina una inversión (queda con activo = false, no se borra de la base).
-// @Param id path int true "Id de la inversión"
-// @Success 200 {object} map[string]interface{} "Inversión eliminada"
-// @Failure 400 {object} map[string]interface{} "Id inválido"
-// @Failure 404 {object} map[string]interface{} "La inversión no existe"
-// @Failure 502 {object} map[string]interface{} "Error al consultar el CRUD"
-// @Router /v1/inversiones/:id [delete]
-func (c *FinanzasController) EliminarInversion() {
-	id, err := strconv.Atoi(c.Ctx.Input.Param(":id"))
-
-	if err != nil || id <= 0 {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "El id de la inversión debe ser un número mayor que cero.",
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadRequest)
-		c.ServeJSON()
-		return
-	}
-
-	crud := services.NewCrudFinanzasService()
-
-	inversion, err := crud.ObtenerInversion(id)
-
-	if errors.Is(err, services.ErrNoEncontrado) {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "La inversión no existe.",
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusNotFound)
-		c.ServeJSON()
-		return
-	}
-
-	if err != nil {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "No fue posible consultar la inversión.",
-			"Error":   err.Error(),
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
-		c.ServeJSON()
-		return
-	}
-
-	inversion.Activo = false
-
-	err = crud.Actualizar("inversion", id, inversion)
-
-	if err != nil {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "No fue posible eliminar la inversión.",
-			"Error":   err.Error(),
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
-		c.ServeJSON()
-		return
-	}
-
-	c.Data["json"] = map[string]interface{}{
-		"OK":      true,
-		"Mensaje": "Inversión eliminada correctamente.",
-		"Id":      id,
-	}
-	c.Ctx.ResponseWriter.WriteHeader(http.StatusOK)
-	c.ServeJSON()
-}
-
-// ============================================================
-// ADMIN (datos de todos los usuarios)
-// ============================================================
-
-// @Title Movimientos de todos los usuarios.
-// @Description Devuelve los movimientos de todos los usuarios y sus totales. Acepta los mismos filtros del Libro mayor.
-// @Success 200 {object} models.RespuestaMovimientos
-// @Failure 400 {object} map[string]interface{} "Filtros inválidos"
-// @Failure 502 {object} map[string]interface{} "Error al consultar el CRUD"
-// @Router /v1/admin/movimientos [get]
-func (c *FinanzasController) ObtenerMovimientosAdmin() {
-	filtros, mensaje := c.leerFiltros()
-
-	if mensaje != "" {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": mensaje,
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadRequest)
-		c.ServeJSON()
-		return
-	}
-
-	crud := services.NewCrudFinanzasService()
-
-	movimientos, err := crud.ObtenerMovimientos(0)
-
-	if err != nil {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "No fue posible consultar los movimientos.",
-			"Error":   err.Error(),
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
-		c.ServeJSON()
-		return
-	}
-
-	categorias, err := crud.ObtenerCategorias()
-
-	if err != nil {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "No fue posible consultar las categorías.",
-			"Error":   err.Error(),
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
-		c.ServeJSON()
-		return
-	}
-
-	lista := services.FiltrarMovimientos(services.ArmarMovimientos(movimientos, categorias), filtros)
-
-	respuesta := models.RespuestaMovimientos{
-		OK:          true,
-		Mensaje:     "Movimientos consultados correctamente.",
-		Movimientos: lista,
-		Totales:     services.CalcularTotales(lista),
-	}
-
-	c.Data["json"] = respuesta
-	c.Ctx.ResponseWriter.WriteHeader(http.StatusOK)
-	c.ServeJSON()
-}
-
-// @Title Metas de todos los usuarios.
-// @Description Devuelve las metas de todos los usuarios y sus totales.
-// @Success 200 {object} models.RespuestaMetas
-// @Failure 502 {object} map[string]interface{} "Error al consultar el CRUD"
-// @Router /v1/admin/metas [get]
-func (c *FinanzasController) ObtenerMetasAdmin() {
-	crud := services.NewCrudFinanzasService()
-
-	metas, err := crud.ObtenerMetas(0)
-
-	if err != nil {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "No fue posible consultar las metas.",
-			"Error":   err.Error(),
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
-		c.ServeJSON()
-		return
-	}
-
-	calculos := services.CalcularMetas(metas)
-
-	respuesta := models.RespuestaMetas{
-		OK:              true,
-		Mensaje:         "Metas consultadas correctamente.",
-		Metas:           calculos.Metas,
-		TotalMetas:      calculos.TotalMetas,
-		MetasAlcanzadas: calculos.MetasAlcanzadas,
-		TotalAhorrado:   calculos.TotalAhorrado,
-		TotalObjetivo:   calculos.TotalObjetivo,
-		ProgresoGeneral: calculos.ProgresoGeneral,
-	}
-
-	c.Data["json"] = respuesta
-	c.Ctx.ResponseWriter.WriteHeader(http.StatusOK)
-	c.ServeJSON()
-}
-
-// @Title Inversiones de todos los usuarios.
-// @Description Devuelve las inversiones de todos los usuarios y sus totales.
-// @Success 200 {object} models.RespuestaInversiones
-// @Failure 502 {object} map[string]interface{} "Error al consultar el CRUD"
-// @Router /v1/admin/inversiones [get]
-func (c *FinanzasController) ObtenerInversionesAdmin() {
-	crud := services.NewCrudFinanzasService()
-
-	inversiones, err := crud.ObtenerInversiones(0)
-
-	if err != nil {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "No fue posible consultar las inversiones.",
-			"Error":   err.Error(),
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
-		c.ServeJSON()
-		return
-	}
-
-	niveles, err := crud.ObtenerNivelesRiesgo()
-
-	if err != nil {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "No fue posible consultar los niveles de riesgo.",
-			"Error":   err.Error(),
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
-		c.ServeJSON()
-		return
-	}
-
-	calculos := services.CalcularInversiones(inversiones, niveles, crud.ObtenerHistorial())
-
-	respuesta := models.RespuestaInversiones{
-		OK:                    true,
-		Mensaje:               "Inversiones consultadas correctamente.",
-		Inversiones:           calculos.Inversiones,
-		BalanceInversiones:    calculos.BalanceInversiones,
-		RendimientoTotal:      calculos.RendimientoTotal,
-		RendimientoPorcentaje: calculos.RendimientoPorcentaje,
-		TotalPorRiesgo:        calculos.TotalPorRiesgo,
-		AlertaConcentracion:   calculos.AlertaConcentracion,
-		Carteras:              calculos.Carteras,
-		Crecimiento:           calculos.Crecimiento,
-	}
-
-	c.Data["json"] = respuesta
-	c.Ctx.ResponseWriter.WriteHeader(http.StatusOK)
-	c.ServeJSON()
-}
-
-// @Title Libro mayor de todos los usuarios.
-// @Description Devuelve el libro mayor agrupado por usuario, con su nombre, y los totales de la plataforma.
-// @Success 200 {object} models.RespuestaLibrosAdmin
-// @Failure 502 {object} map[string]interface{} "Error al consultar los CRUD"
-// @Router /v1/admin/libro-mayor [get]
-func (c *FinanzasController) ObtenerLibroMayorAdmin() {
-	crud := services.NewCrudFinanzasService()
-
-	nombres, err := crud.ObtenerNombresUsuarios()
-
-	if err != nil {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "No fue posible consultar los usuarios.",
-			"Error":   err.Error(),
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
-		c.ServeJSON()
-		return
-	}
-
-	movimientos, err := crud.ObtenerMovimientos(0)
-
-	if err != nil {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "No fue posible consultar los movimientos.",
-			"Error":   err.Error(),
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
-		c.ServeJSON()
-		return
-	}
-
-	categorias, err := crud.ObtenerCategorias()
-
-	if err != nil {
-		c.Data["json"] = map[string]interface{}{
-			"OK":      false,
-			"Mensaje": "No fue posible consultar las categorías.",
-			"Error":   err.Error(),
-		}
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
-		c.ServeJSON()
-		return
-	}
-
-	calculos := services.CalcularLibrosAdmin(services.ArmarMovimientos(movimientos, categorias), nombres)
-
-	respuesta := models.RespuestaLibrosAdmin{
-		OK:                      true,
-		Mensaje:                 "Libro mayor consultado correctamente.",
-		Libros:                  calculos.Libros,
-		TotalIngresosPlataforma: calculos.TotalIngresosPlataforma,
-		TotalEgresosPlataforma:  calculos.TotalEgresosPlataforma,
-		UsuariosActivos:         calculos.UsuariosActivos,
-	}
-
-	c.Data["json"] = respuesta
-	c.Ctx.ResponseWriter.WriteHeader(http.StatusOK)
-	c.ServeJSON()
-}
-
-// ============================================================
-// VALIDACIONES
-// Devuelven el mensaje del primer error encontrado, o "" si todo está bien.
-// ============================================================
-
-// validarMovimiento revisa los datos de un movimiento y los limpia
-// (quita espacios y pasa el tipo a minúsculas).
-func validarMovimiento(solicitud *models.SolicitudMovimiento) string {
-	solicitud.Concepto = strings.TrimSpace(solicitud.Concepto)
-	solicitud.Categoria = strings.TrimSpace(solicitud.Categoria)
-	solicitud.Tipo = strings.ToLower(strings.TrimSpace(solicitud.Tipo))
-	solicitud.Fecha = strings.TrimSpace(solicitud.Fecha)
-
-	if solicitud.Concepto == "" {
-		return "El concepto es obligatorio."
-	}
-
-	if utf8.RuneCountInString(solicitud.Concepto) > 120 {
-		return "El concepto no puede tener más de 120 caracteres."
-	}
-
-	if solicitud.Valor <= 0 {
-		return "El valor debe ser mayor a cero."
-	}
-
-	if solicitud.Tipo != "ingreso" && solicitud.Tipo != "gasto" {
-		return "El tipo debe ser ingreso o gasto."
-	}
-
-	if solicitud.Categoria == "" {
-		return "La categoría es obligatoria."
-	}
-
-	_, err := time.Parse("2006-01-02", solicitud.Fecha)
-
-	if err != nil {
-		return "La fecha debe tener el formato AAAA-MM-DD."
-	}
-
-	if solicitud.MetodoPago != nil && utf8.RuneCountInString(*solicitud.MetodoPago) > 50 {
-		return "El método de pago no puede tener más de 50 caracteres."
-	}
-
-	return ""
-}
-
-// validarMeta revisa los datos de una meta. Si no trae ícono, le pone 🎯.
-func validarMeta(solicitud *models.SolicitudMeta) string {
-	solicitud.Nombre = strings.TrimSpace(solicitud.Nombre)
-	solicitud.Icono = strings.TrimSpace(solicitud.Icono)
-
-	if solicitud.Icono == "" {
-		solicitud.Icono = "🎯"
-	}
-
-	if solicitud.Nombre == "" {
-		return "El nombre de la meta es obligatorio."
-	}
-
-	if utf8.RuneCountInString(solicitud.Nombre) > 120 {
-		return "El nombre no puede tener más de 120 caracteres."
-	}
-
-	if solicitud.Objetivo <= 0 {
-		return "El monto objetivo debe ser mayor a cero."
-	}
-
-	if solicitud.Actual < 0 {
-		return "El monto actual no puede ser negativo."
-	}
-
-	if utf8.RuneCountInString(solicitud.Icono) > 50 {
-		return "El ícono no puede tener más de 50 caracteres."
-	}
-
-	return ""
-}
-
-// validarInversion revisa los datos de una inversión y deja el riesgo
-// bien escrito ("bajo" -> "Bajo").
-func validarInversion(solicitud *models.SolicitudInversion) string {
-	solicitud.Nombre = strings.TrimSpace(solicitud.Nombre)
-	solicitud.Duracion = strings.TrimSpace(solicitud.Duracion)
-	solicitud.Riesgo = services.Capitalizar(solicitud.Riesgo)
-
-	if solicitud.Nombre == "" {
-		return "El nombre de la inversión es obligatorio."
-	}
-
-	if utf8.RuneCountInString(solicitud.Nombre) > 120 {
-		return "El nombre no puede tener más de 120 caracteres."
-	}
-
-	if solicitud.Duracion == "" {
-		return "La duración es obligatoria."
-	}
-
-	if utf8.RuneCountInString(solicitud.Duracion) > 30 {
-		return "La duración no puede tener más de 30 caracteres."
-	}
-
-	if solicitud.Monto <= 0 {
-		return "El monto debe ser mayor a cero."
-	}
-
-	if solicitud.Riesgo != "Bajo" && solicitud.Riesgo != "Medio" && solicitud.Riesgo != "Alto" {
-		return "El riesgo debe ser Bajo, Medio o Alto."
-	}
-
-	if solicitud.Rendimiento < -solicitud.Monto {
-		return "La pérdida no puede ser mayor que el monto invertido."
-	}
-
-	// La base guarda la rentabilidad con máximo 4 cifras enteras
-	if math.Abs(services.CalcularRentabilidad(solicitud.Rendimiento, solicitud.Monto)) >= 10000 {
-		return "El rendimiento no es coherente con el monto invertido."
-	}
-
-	return ""
-}
-
-// leerFiltros lee los filtros del Libro mayor de la URL y revisa que estén bien.
-func (c *FinanzasController) leerFiltros() (models.FiltrosMovimientos, string) {
-	filtros := models.FiltrosMovimientos{
-		Tipo:      strings.ToLower(strings.TrimSpace(c.GetString("tipo"))),
-		Categoria: c.GetString("categoria"),
-		Desde:     strings.TrimSpace(c.GetString("desde")),
-		Hasta:     strings.TrimSpace(c.GetString("hasta")),
-		Texto:     c.GetString("q"),
-	}
-
-	if filtros.Tipo != "" && filtros.Tipo != "todos" && filtros.Tipo != "ingreso" && filtros.Tipo != "gasto" {
-		return filtros, "El filtro tipo debe ser todos, ingreso o gasto."
-	}
-
-	for _, fecha := range []string{filtros.Desde, filtros.Hasta} {
-		if fecha == "" {
+		if fila.Concepto == "" || fila.Valor <= 0 {
+			errores = append(errores, fmt.Sprintf("Fila %d: falta el concepto o el valor", numeroFila))
 			continue
 		}
 
-		_, err := time.Parse("2006-01-02", fecha)
+		if fila.Tipo != "ingreso" && fila.Tipo != "gasto" {
+			errores = append(errores, fmt.Sprintf("Fila %d: el tipo debe ser ingreso o gasto", numeroFila))
+			continue
+		}
+
+		movimiento := Movimiento{
+			IdUsuario:     datos.IdUsuario,
+			Nombre:        fila.Concepto,
+			Monto:         fila.Valor,
+			EsIngreso:     fila.Tipo == "ingreso",
+			Fecha:         fecha,
+			MetodoPago:    fila.MetodoPago,
+			Observaciones: fila.Observaciones,
+			Activo:        true,
+		}
+
+		if idCategoria, existe := categoriaPorNombre[strings.ToLower(fila.Categoria)]; existe {
+			movimiento.IdCategoria = &Ref{Id: idCategoria}
+		}
+
+		jsonMovimiento, _ := json.Marshal(movimiento)
+
+		responseCrear, err := http.Post(urlCrudFinanzas+"/movimiento_ingreso_egreso", "application/json", bytes.NewBuffer(jsonMovimiento))
 
 		if err != nil {
-			return filtros, "Las fechas de los filtros deben tener el formato AAAA-MM-DD."
+			errores = append(errores, fmt.Sprintf("Fila %d: no se pudo guardar", numeroFila))
+			continue
+		}
+
+		responseCrear.Body.Close()
+
+		if responseCrear.StatusCode != http.StatusCreated {
+			errores = append(errores, fmt.Sprintf("Fila %d: no se pudo guardar", numeroFila))
+			continue
+		}
+
+		guardados++
+	}
+
+	// --------------------------------------------------------
+	// 4. Devolver el resultado
+	// --------------------------------------------------------
+
+	c.Data["json"] = map[string]interface{}{
+		"guardados": guardados,
+		"errores":   errores,
+	}
+
+	c.ServeJSON()
+}
+
+// ============================================================
+// GET /v1/metas/usuario/:id
+// Metas de un usuario con su porcentaje y si ya se cumplio
+// ============================================================
+
+func (c *FinanzasController) GetMetas() {
+
+	// --------------------------------------------------------
+	// 1. Obtener el ID enviado en la URL
+	// --------------------------------------------------------
+
+	id, err := strconv.Atoi(c.Ctx.Input.Param(":id"))
+
+	if err != nil {
+		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadRequest)
+		c.Data["json"] = map[string]interface{}{"error": "El ID debe ser numerico"}
+		c.ServeJSON()
+		return
+	}
+
+	// --------------------------------------------------------
+	// 2. Consultar las metas del usuario
+	// --------------------------------------------------------
+
+	responseMetas, err := http.Get(fmt.Sprintf("%s/meta?query=id_usuario:%d,activo:true&limit=1000", urlCrudFinanzas, id))
+
+	if err != nil {
+		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
+		c.Data["json"] = map[string]interface{}{"error": "No fue posible comunicarse con la API de finanzas"}
+		c.ServeJSON()
+		return
+	}
+
+	defer responseMetas.Body.Close()
+
+	bodyMetas, _ := io.ReadAll(responseMetas.Body)
+
+	var metas []Meta
+	json.Unmarshal(bodyMetas, &metas)
+
+	// --------------------------------------------------------
+	// 3. Calcular el porcentaje de cada meta
+	//    porcentaje = ahorrado / objetivo * 100 (maximo 100)
+	// --------------------------------------------------------
+
+	lista := []map[string]interface{}{}
+	totalAhorrado := 0.0
+	totalObjetivo := 0.0
+	cumplidas := 0
+
+	for _, meta := range metas {
+
+		porcentaje := 0.0
+		if meta.MontoObjetivo > 0 {
+			porcentaje = math.Min(100, math.Round(meta.MontoActual/meta.MontoObjetivo*100))
+		}
+
+		cumplida := porcentaje >= 100
+		if cumplida {
+			cumplidas++
+		}
+
+		totalAhorrado += meta.MontoActual
+		totalObjetivo += meta.MontoObjetivo
+
+		lista = append(lista, map[string]interface{}{
+			"id":         meta.Id,
+			"nombre":     meta.Nombre,
+			"icono":      meta.Icono,
+			"actual":     meta.MontoActual,
+			"objetivo":   meta.MontoObjetivo,
+			"porcentaje": porcentaje,
+			"cumplida":   cumplida,
+		})
+	}
+
+	// --------------------------------------------------------
+	// 4. Devolver las metas con los totales
+	// --------------------------------------------------------
+
+	c.Data["json"] = map[string]interface{}{
+		"metas":          lista,
+		"total_ahorrado": totalAhorrado,
+		"total_objetivo": totalObjetivo,
+		"cumplidas":      cumplidas,
+	}
+
+	c.ServeJSON()
+}
+
+// ============================================================
+// PUT /v1/metas/:id/abono
+// Suma dinero a lo ahorrado en una meta
+// ============================================================
+
+func (c *FinanzasController) PutAbonoMeta() {
+
+	// --------------------------------------------------------
+	// 1. Obtener el ID y el valor a abonar
+	// --------------------------------------------------------
+
+	id, err := strconv.Atoi(c.Ctx.Input.Param(":id"))
+
+	if err != nil {
+		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadRequest)
+		c.Data["json"] = map[string]interface{}{"error": "El ID debe ser numerico"}
+		c.ServeJSON()
+		return
+	}
+
+	var datos DatosAbono
+
+	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &datos); err != nil || datos.Valor <= 0 {
+		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadRequest)
+		c.Data["json"] = map[string]interface{}{"error": "El valor del abono debe ser mayor a 0"}
+		c.ServeJSON()
+		return
+	}
+
+	// --------------------------------------------------------
+	// 2. Consultar la meta completa
+	//    Se guarda en un map para no perder ningun campo
+	//    cuando se haga el PUT al CRUD.
+	// --------------------------------------------------------
+
+	responseMeta, err := http.Get(fmt.Sprintf("%s/meta/%d", urlCrudFinanzas, id))
+
+	if err != nil {
+		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
+		c.Data["json"] = map[string]interface{}{"error": "No fue posible comunicarse con la API de finanzas"}
+		c.ServeJSON()
+		return
+	}
+
+	defer responseMeta.Body.Close()
+
+	bodyMeta, _ := io.ReadAll(responseMeta.Body)
+
+	var meta map[string]interface{}
+
+	if err := json.Unmarshal(bodyMeta, &meta); err != nil {
+		c.Ctx.ResponseWriter.WriteHeader(http.StatusNotFound)
+		c.Data["json"] = map[string]interface{}{"error": "La meta no existe"}
+		c.ServeJSON()
+		return
+	}
+
+	// --------------------------------------------------------
+	// 3. Sumar el abono y guardar
+	// --------------------------------------------------------
+
+	actual, _ := meta["MontoActual"].(float64)
+	meta["MontoActual"] = actual + datos.Valor
+
+	jsonMeta, _ := json.Marshal(meta)
+
+	peticionPut, _ := http.NewRequest(http.MethodPut, fmt.Sprintf("%s/meta/%d", urlCrudFinanzas, id), bytes.NewBuffer(jsonMeta))
+	peticionPut.Header.Set("Content-Type", "application/json")
+
+	responsePut, err := http.DefaultClient.Do(peticionPut)
+
+	if err != nil {
+		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
+		c.Data["json"] = map[string]interface{}{"error": "No se pudo guardar el abono"}
+		c.ServeJSON()
+		return
+	}
+
+	responsePut.Body.Close()
+
+	// --------------------------------------------------------
+	// 4. Devolver el nuevo valor ahorrado
+	// --------------------------------------------------------
+
+	c.Data["json"] = map[string]interface{}{
+		"id":       id,
+		"actual":   meta["MontoActual"],
+		"objetivo": meta["MontoObjetivo"],
+	}
+
+	c.ServeJSON()
+}
+
+// ============================================================
+// GET /v1/inversiones/usuario/:id
+// Inversiones con su riesgo, balance, rendimiento y la grafica
+// ============================================================
+
+func (c *FinanzasController) GetInversiones() {
+
+	// --------------------------------------------------------
+	// 1. Obtener el ID enviado en la URL
+	// --------------------------------------------------------
+
+	id, err := strconv.Atoi(c.Ctx.Input.Param(":id"))
+
+	if err != nil {
+		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadRequest)
+		c.Data["json"] = map[string]interface{}{"error": "El ID debe ser numerico"}
+		c.ServeJSON()
+		return
+	}
+
+	// --------------------------------------------------------
+	// 2. Consultar las inversiones del usuario
+	// --------------------------------------------------------
+
+	responseInversiones, err := http.Get(fmt.Sprintf("%s/inversion?query=id_usuario:%d,activo:true&limit=1000", urlCrudFinanzas, id))
+
+	if err != nil {
+		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
+		c.Data["json"] = map[string]interface{}{"error": "No fue posible comunicarse con la API de finanzas"}
+		c.ServeJSON()
+		return
+	}
+
+	defer responseInversiones.Body.Close()
+
+	bodyInversiones, _ := io.ReadAll(responseInversiones.Body)
+
+	var inversiones []Inversion
+	json.Unmarshal(bodyInversiones, &inversiones)
+
+	// --------------------------------------------------------
+	// 3. Consultar los niveles de riesgo (Bajo, Medio, Alto)
+	// --------------------------------------------------------
+
+	responseNiveles, err := http.Get(urlCrudFinanzas + "/nivel_riesgo?limit=100")
+
+	if err != nil {
+		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
+		c.Data["json"] = map[string]interface{}{"error": "No fue posible consultar los niveles de riesgo"}
+		c.ServeJSON()
+		return
+	}
+
+	defer responseNiveles.Body.Close()
+
+	bodyNiveles, _ := io.ReadAll(responseNiveles.Body)
+
+	var niveles []NivelRiesgo
+	json.Unmarshal(bodyNiveles, &niveles)
+
+	riesgoPorId := map[int]string{}
+	for _, nivel := range niveles {
+		riesgoPorId[nivel.Id] = nivel.Nombre
+	}
+
+	// --------------------------------------------------------
+	// 4. Armar la lista y sumar balance y rendimiento
+	// --------------------------------------------------------
+
+	lista := []map[string]interface{}{}
+	balance := 0.0
+	rendimientoTotal := 0.0
+	valorPorFecha := map[string]float64{}
+
+	for _, inversion := range inversiones {
+
+		balance += inversion.Monto
+		rendimientoTotal += inversion.Rendimiento
+
+		riesgo := ""
+		if inversion.IdNivelRiesgo != nil {
+			riesgo = riesgoPorId[inversion.IdNivelRiesgo.Id]
+		}
+
+		lista = append(lista, map[string]interface{}{
+			"id":          inversion.Id,
+			"nombre":      inversion.Nombre,
+			"monto":       inversion.Monto,
+			"rendimiento": inversion.Rendimiento,
+			"riesgo":      riesgo,
+			"duracion":    inversion.Duracion,
+		})
+
+		// Historial de esta inversion (puntos de la grafica)
+		responseHistorial, err := http.Get(fmt.Sprintf("%s/historial_inversion?query=id_inversion:%d,activo:true&limit=1000", urlCrudFinanzas, inversion.Id))
+
+		if err != nil {
+			continue
+		}
+
+		bodyHistorial, _ := io.ReadAll(responseHistorial.Body)
+		responseHistorial.Body.Close()
+
+		var historial []HistorialInversion
+		json.Unmarshal(bodyHistorial, &historial)
+
+		for _, punto := range historial {
+			valorPorFecha[punto.Fecha.Format("2006-01-02")] += punto.Valor
 		}
 	}
 
-	return filtros, ""
+	// --------------------------------------------------------
+	// 5. Ordenar los puntos de la grafica por fecha
+	// --------------------------------------------------------
+
+	fechas := []string{}
+	for fecha := range valorPorFecha {
+		fechas = append(fechas, fecha)
+	}
+	sort.Strings(fechas)
+
+	grafica := []map[string]interface{}{}
+	for _, fecha := range fechas {
+		grafica = append(grafica, map[string]interface{}{"fecha": fecha, "valor": valorPorFecha[fecha]})
+	}
+
+	// --------------------------------------------------------
+	// 6. Calcular el porcentaje de rendimiento y devolver todo
+	//    porcentaje = rendimiento / balance * 100
+	// --------------------------------------------------------
+
+	porcentaje := 0.0
+	if balance > 0 {
+		porcentaje = math.Round(rendimientoTotal/balance*1000) / 10
+	}
+
+	c.Data["json"] = map[string]interface{}{
+		"inversiones":            lista,
+		"balance":                balance,
+		"rendimiento_total":      rendimientoTotal,
+		"rendimiento_porcentaje": porcentaje,
+		"grafica":                grafica,
+	}
+
+	c.ServeJSON()
+}
+
+// ============================================================
+// GET /v1/admin/finanzas
+// Para el administrador: movimientos, metas e inversiones de
+// todos los usuarios, con el nombre de cada usuario
+// (crud_auth + crud_finanzas)
+// ============================================================
+
+func (c *FinanzasController) GetAdminFinanzas() {
+
+	// --------------------------------------------------------
+	// 1. Consultar los usuarios (para poner su nombre)
+	// --------------------------------------------------------
+
+	responseUsuarios, err := http.Get(urlCrudAuth + "/usuario?limit=10000")
+
+	if err != nil {
+		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
+		c.Data["json"] = map[string]interface{}{"error": "No fue posible comunicarse con la API de usuarios"}
+		c.ServeJSON()
+		return
+	}
+
+	defer responseUsuarios.Body.Close()
+
+	bodyUsuarios, _ := io.ReadAll(responseUsuarios.Body)
+
+	var usuarios []Usuario
+	json.Unmarshal(bodyUsuarios, &usuarios)
+
+	nombrePorId := map[int]string{}
+	for _, usuario := range usuarios {
+		nombrePorId[usuario.Id] = usuario.Nombre + " " + usuario.Apellido
+	}
+
+	// --------------------------------------------------------
+	// 2. Consultar los movimientos de todos
+	// --------------------------------------------------------
+
+	responseMovimientos, err := http.Get(urlCrudFinanzas + "/movimiento_ingreso_egreso?query=activo:true&sortby=Fecha&order=desc&limit=10000")
+
+	if err != nil {
+		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
+		c.Data["json"] = map[string]interface{}{"error": "No fue posible comunicarse con la API de finanzas"}
+		c.ServeJSON()
+		return
+	}
+
+	defer responseMovimientos.Body.Close()
+
+	bodyMovimientos, _ := io.ReadAll(responseMovimientos.Body)
+
+	var movimientos []Movimiento
+	json.Unmarshal(bodyMovimientos, &movimientos)
+
+	// --------------------------------------------------------
+	// 3. Consultar las metas de todos
+	// --------------------------------------------------------
+
+	responseMetas, err := http.Get(urlCrudFinanzas + "/meta?query=activo:true&limit=10000")
+
+	if err != nil {
+		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
+		c.Data["json"] = map[string]interface{}{"error": "No fue posible consultar las metas"}
+		c.ServeJSON()
+		return
+	}
+
+	defer responseMetas.Body.Close()
+
+	bodyMetas, _ := io.ReadAll(responseMetas.Body)
+
+	var metas []Meta
+	json.Unmarshal(bodyMetas, &metas)
+
+	// --------------------------------------------------------
+	// 4. Consultar las inversiones de todos
+	// --------------------------------------------------------
+
+	responseInversiones, err := http.Get(urlCrudFinanzas + "/inversion?query=activo:true&limit=10000")
+
+	if err != nil {
+		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
+		c.Data["json"] = map[string]interface{}{"error": "No fue posible consultar las inversiones"}
+		c.ServeJSON()
+		return
+	}
+
+	defer responseInversiones.Body.Close()
+
+	bodyInversiones, _ := io.ReadAll(responseInversiones.Body)
+
+	var inversiones []Inversion
+	json.Unmarshal(bodyInversiones, &inversiones)
+
+	// --------------------------------------------------------
+	// 5. Armar las tres listas con el nombre del usuario
+	// --------------------------------------------------------
+
+	listaMovimientos := []map[string]interface{}{}
+	for _, movimiento := range movimientos {
+		tipo := "gasto"
+		if movimiento.EsIngreso {
+			tipo = "ingreso"
+		}
+		listaMovimientos = append(listaMovimientos, map[string]interface{}{
+			"id":       movimiento.Id,
+			"usuario":  nombrePorId[movimiento.IdUsuario],
+			"fecha":    movimiento.Fecha.Format("2006-01-02"),
+			"concepto": movimiento.Nombre,
+			"tipo":     tipo,
+			"valor":    movimiento.Monto,
+		})
+	}
+
+	listaMetas := []map[string]interface{}{}
+	for _, meta := range metas {
+		listaMetas = append(listaMetas, map[string]interface{}{
+			"id":       meta.Id,
+			"usuario":  nombrePorId[meta.IdUsuario],
+			"nombre":   meta.Nombre,
+			"actual":   meta.MontoActual,
+			"objetivo": meta.MontoObjetivo,
+		})
+	}
+
+	listaInversiones := []map[string]interface{}{}
+	for _, inversion := range inversiones {
+		listaInversiones = append(listaInversiones, map[string]interface{}{
+			"id":          inversion.Id,
+			"usuario":     nombrePorId[inversion.IdUsuario],
+			"nombre":      inversion.Nombre,
+			"monto":       inversion.Monto,
+			"rendimiento": inversion.Rendimiento,
+		})
+	}
+
+	// --------------------------------------------------------
+	// 6. Devolver todo
+	// --------------------------------------------------------
+
+	c.Data["json"] = map[string]interface{}{
+		"movimientos": listaMovimientos,
+		"metas":       listaMetas,
+		"inversiones": listaInversiones,
+	}
+
+	c.ServeJSON()
 }

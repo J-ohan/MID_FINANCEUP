@@ -5,10 +5,50 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strconv"
 
 	beego "github.com/beego/beego/v2/server/web"
 )
+
+// ============================================================
+// Direcciones de los 5 CRUD
+// Tienen un valor por defecto (localhost) y se pueden cambiar
+// en el archivo .env sin tocar el codigo.
+// ============================================================
+
+var (
+	urlCrudAuth      = "http://localhost:8081/v1"
+	urlCrudFinanzas  = "http://localhost:8082/v1"
+	urlCrudEducacion = "http://localhost:8083/v1"
+	urlCrudNegocio   = "http://localhost:8084/v1"
+	urlCrudSoporte   = "http://localhost:8085/v1"
+)
+
+// CargarUrls lee las direcciones del .env (si existen).
+// Se llama una sola vez desde main.go al arrancar.
+func CargarUrls() {
+	if valor := os.Getenv("URL_CRUD_AUTH"); valor != "" {
+		urlCrudAuth = valor
+	}
+	if valor := os.Getenv("URL_CRUD_FINANZAS"); valor != "" {
+		urlCrudFinanzas = valor
+	}
+	if valor := os.Getenv("URL_CRUD_EDUCACION"); valor != "" {
+		urlCrudEducacion = valor
+	}
+	if valor := os.Getenv("URL_CRUD_NEGOCIO"); valor != "" {
+		urlCrudNegocio = valor
+	}
+	if valor := os.Getenv("URL_CRUD_SOPORTE"); valor != "" {
+		urlCrudSoporte = valor
+	}
+}
+
+// Ref es una llave foranea tal como llega de los CRUD: {"Id": 1}
+type Ref struct {
+	Id int `json:"Id"`
+}
 
 // GeneralController operations for General
 type GeneralController struct {
@@ -27,11 +67,11 @@ func (c *GeneralController) Estado() {
 	// --------------------------------------------------------
 
 	cruds := map[string]string{
-		"crud_auth":      "http://localhost:8081/v1",
-		"crud_finanzas":  "http://localhost:8082/v1",
-		"crud_educacion": "http://localhost:8083/v1",
-		"crud_negocio":   "http://localhost:8084/v1",
-		"crud_soporte":   "http://localhost:8085/v1",
+		"crud_auth":      urlCrudAuth,
+		"crud_finanzas":  urlCrudFinanzas,
+		"crud_educacion": urlCrudEducacion,
+		"crud_negocio":   urlCrudNegocio,
+		"crud_soporte":   urlCrudSoporte,
 	}
 
 	// --------------------------------------------------------
@@ -86,12 +126,15 @@ func (c *GeneralController) GetDashboard() {
 	// 2. Rutas del MID que se van a juntar
 	// --------------------------------------------------------
 
+	puerto, _ := beego.AppConfig.String("httpport")
+	mid := "http://localhost:" + puerto + "/v1"
+
 	secciones := map[string]string{
-		"perfil":              fmt.Sprintf("http://localhost:8080/v1/perfil/%d", id),
-		"finanzas":            fmt.Sprintf("http://localhost:8080/v1/resumen-financiero/%d", id),
-		"educacion":           fmt.Sprintf("http://localhost:8080/v1/progreso-educativo/%d", id),
-		"solicitudes_credito": fmt.Sprintf("http://localhost:8080/v1/solicitud-credito/usuario/%d", id),
-		"pqr":                 fmt.Sprintf("http://localhost:8080/v1/pqr/usuario/%d", id),
+		"perfil":              fmt.Sprintf("%s/perfil/%d", mid, id),
+		"finanzas":            fmt.Sprintf("%s/resumen-financiero/%d", mid, id),
+		"educacion":           fmt.Sprintf("%s/progreso-educativo/%d", mid, id),
+		"solicitudes_credito": fmt.Sprintf("%s/solicitud-credito/usuario/%d", mid, id),
+		"pqr":                 fmt.Sprintf("%s/pqr/usuario/%d", mid, id),
 	}
 
 	// --------------------------------------------------------
