@@ -1,12 +1,13 @@
 package controllers
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
-	"encoding/json"
 
 	beego "github.com/beego/beego/v2/server/web"
 )
@@ -105,24 +106,26 @@ type AuthController struct {
 
 func (c *AuthController) GetPerfil() {
 
-	// Obtener el ID enviado en la URL
+
 
 	id, err := strconv.Atoi(c.Ctx.Input.Param(":id"))
 
 	if err != nil {
 		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadRequest)
-		c.Data["json"] = map[string]interface{}{"error": "El ID debe ser numerico"}
+		c.Data["json"] = map[string]interface{}{
+			"error": "El ID debe ser numerico" ,
+		}
 		c.ServeJSON()
 		return
 	}
 
 
-	responseUsuario, err := http.Get(fmt.Sprintf("http://localhost:8081/v1/usuario/%d", id),)
+	responseUsuario, err := http.Get(fmt.Sprintf("%s/usuario/%d", urlCrudAuth, id))
 
-	if err !=nil {
+	if err != nil {
 		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
-		c.Data["json"]= map[string]interface{}{
-			"error": "No fue posible comunicarse con la API del usuarios",
+		c.Data["json"] = map[string]interface{}{
+			"error": "No fue posible comunicarse con la API de usuarios",
 		}
 		c.ServeJSON()
 		return
@@ -130,35 +133,119 @@ func (c *AuthController) GetPerfil() {
 
 	defer responseUsuario.Body.Close()
 
-	bodyUsuario,_:io.ReadAll(responseUsuario.Body)
+	bodyUsuario, _ := io.ReadAll(responseUsuario.Body)
 
 	var usuario Usuario
 
 
-	if err := json.Unmarshal(bodyUsuario, &usuario); err !=nil{
+	if err := json.Unmarshal(bodyUsuario, &usuario); err != nil {
 		c.Ctx.ResponseWriter.WriteHeader(http.StatusNotFound)
 		c.Data["json"] = map[string]interface{}{
-			"error": "El usuario no existe"}
+			"error": "El usuario no existe",
+		}
 		c.ServeJSON()
 		return
 	}
 
-	//Condultar su tipo de documento
+	
 
-	TipoDocumento :=""
+	//Consultar su tipo de documento
+	tipoDocumento := ""
 
-	if usuario.TipoDocumento !=nil{
+	if usuario.TipoDocumento != nil {
 
-		responseTipo, err := http.Get(fmt.Sprintf("http://localhost:8081/v1/tipo_documento/%d", usuario.TipoDocumento.Id))
+		responseTipo, err := http.Get(fmt.Sprintf("%s/tipo_documento/%d", urlCrudAuth, usuario.TipoDocumento.Id))
 
-		if err ==nil {
+		if err == nil {
 			defer responseTipo.Body.Close()
-			bodyTipo,_ := io.ReadAll(responseTipo.Body)
+			bodyTipo, _ := io.ReadAll(responseTipo.Body)
 
-			var TipoDocumento
-			if json.Unmarshal(bodyTipo, &tipo) ==nil{
-				tipoDocumento
+			var tipo TipoDocumento
+			if json.Unmarshal(bodyTipo, &tipo) == nil {
+				tipoDocumento = tipo.Codigo
 			}
 		}
 	}
+
+	//Consultar roles
+
+	responseRoles, err := http.Get(fmt.Sprintf("%s/usuario_rol?query=id_usuario:%d,activo:true&limit=1000", urlCrudAuth, id))
+
+	if err != nil {
+		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadGateway)
+		c.Data["json"] = map[string]interface{}{
+			"error": "No fue posible consultar los roles",
+		}
+		c.ServeJSON()
+		return
+	}
+
+	defer responseRoles.Body.Close()
+
+	bodyRoles, _ := io.ReadAll(responseRoles.Body)
+
+	var asignaciones []UsuarioRol
+	json.Unmarshal(bodyRoles, &asignaciones)
+
+	roles := []string{}
+
+	for _, asignacion := range asignaciones {
+
+		responseRol, err := http.Get(fmt.Sprintf("%s/rol/%d", urlCrudAuth, asignacion.IdRol.Id))
+
+		if err != nil {
+			continue
+		}
+
+		bodyRol, _ := io.ReadAll(responseRol.Body)
+		responseRol.Body.Close()
+
+		var rol Rol
+		if json.Unmarshal(bodyRol, &rol) == nil {
+			roles = append(roles, rol.NombreRol)
+		}
+	}
+
+	//construir el peil y devolverlo
+	fechaNacimiento := ""
+	if !usuario.FechaNacimiento.IsZero() {
+		fechaNacimiento = usuario.FechaNacimiento.Format("2006-01-02")
+	}
+
+	c.Data["json"] = map[string]interface{}{
+		"id_usuario":       usuario.Id,
+		"nombre":           usuario.Nombre,
+		"apellido":         usuario.Apellido,
+		"email":            usuario.Email,
+		"tipo_documento":   tipoDocumento,
+		"cedula":           usuario.Cedula,
+		"telefono":         usuario.Telefono,
+		"ciudad":           usuario.Ciudad,
+		"direccion":        usuario.Direccion,
+		"fecha_nacimiento": fechaNacimiento,
+		"estado":           usuario.Estado,
+		"roles":            roles,
+	}
+
+	c.ServeJSON()
+}
+
+
+// POST /v1/registro
+// Crea usuario, clave cifrada y rol 
+
+
+func (c *AuthController) PostRegistro(){
+
+	var datos DatosRegistro
+
+		if err := json.Unmarshal(c.Ctx.Input.RequestBody, &datos); err != nil {
+		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadRequest)
+		c.Data["json"] = map[string]interface{}{
+			"error": "El cuerpo de la peticion no es un JSON valido",
+		}
+		c.ServeJSON()
+		return
+	}
+	datos.Email = strings.ToLower(strings.TrimSpace(datos.Email))
 }
