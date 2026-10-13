@@ -34,7 +34,6 @@ func NewCrudFinanzasService() *CrudFinanzasService {
 
 // USUARIOS (crud_auth)
 
-
 func (s *CrudFinanzasService) ObtenerUsuario(idUsuario int) (models.Usuario, error) {
 	var usuario models.Usuario
 
