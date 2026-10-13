@@ -1,7 +1,8 @@
 package main
 
 import (
-	_ "api_mid_financeup/routers"
+	_ "api_mid_financeup/routers" // Carga las rutas (routers/router.go)
+
 	beego "github.com/beego/beego/v2/server/web"
 	"github.com/beego/beego/v2/server/web/filter/cors"
 )
@@ -35,8 +36,7 @@ func main() {
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 	}))
- 
+
+	// Arranca el servidor en el puerto de conf/app.conf (8080)
 	beego.Run()
 }
-
-
