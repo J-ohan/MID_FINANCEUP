@@ -441,4 +441,5 @@ func (c *FinanzasController) CrearMovimiento() {
 	c.Data["json"] = respuesta
 	c.Ctx.ResponseWriter.WriteHeader(http.StatusCreated)
 	c.ServeJSON()
+	
 }
