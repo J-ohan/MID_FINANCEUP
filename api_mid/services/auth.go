@@ -256,10 +256,6 @@ func Registrar(datos models.DatosRegistro) (map[string]interface{}, error) {
 		return nil, helpers.NuevoError(http.StatusBadRequest, "El correo no es valido")
 	}
 
-	if datos.Cedula == "" {
-		return nil, helpers.NuevoError(http.StatusBadRequest, "El numero de documento es obligatorio")
-	}
-
 	if len(datos.Contrasena) < 8 {
 		return nil, helpers.NuevoError(http.StatusBadRequest, "La contrasena debe tener minimo 8 caracteres")
 	}
