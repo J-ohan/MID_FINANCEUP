@@ -1,38 +1,21 @@
 package routers
 
-// ============================================================================
-// ROUTER.GO — La "tabla de direcciones" del MID
-// ============================================================================
-//
-// Aquí se dice qué función atiende cada URL. Cada línea tiene esta forma:
-//
-//	beego.Router( RUTA , CONTROLADOR , "método_http:Función" )
-//
-// Ejemplo:
-//
-//	beego.Router("/v1/metas", &controllers.FinanzasController{}, "post:PostMeta")
-//
-// se lee así: "cuando llegue un POST a /v1/metas, ejecutar la función
-// PostMeta del controlador de finanzas".
-//
-//   - :id dentro de la ruta es un valor que cambia, por ejemplo /v1/metas/6.
-//     En el controlador se lee con c.Ctx.Input.Param(":id").
-//   - Si una misma ruta atiende varios métodos, se separan con punto y coma:
-//     "put:PutMeta;delete:DeleteMeta" → PUT edita y DELETE elimina.
-//   - Métodos HTTP: get = consultar, post = crear, put = editar, delete = eliminar.
-//
-// En esta rama solo está el módulo de Finanzas (controllers/Finanzas.go).
-// ============================================================================
-
 import (
-	"api_mid_financeup/controllers" // Donde están los controladores
+	"api_mid_financeup/controllers"
 
-	beego "github.com/beego/beego/v2/server/web" // El framework web
+	beego "github.com/beego/beego/v2/server/web"
 )
 
-// init se ejecuta solo, una vez, cuando arranca el MID: registra todas las rutas.
 func init() {
+	beego.Router("/", &controllers.MainController{})
 
+	// Educacion (crud_educacion)
+	beego.Router("/v1/progreso-educativo/:id", &controllers.EducacionController{}, "get:GetProgresoEducativo")
+
+	// Alianzas (crud_negocio)
+	beego.Router("/v1/ofertas", &controllers.NegocioController{}, "get:GetOfertas")
+
+	// Finanzas (crud_finanzas)
 	// Panel principal: tarjetas, salud, dona, metas e inversiones de un usuario
 	beego.Router("/v1/resumen-financiero/:id", &controllers.FinanzasController{}, "get:GetResumenFinanciero")
 	// Categorías para los selects y filtros
