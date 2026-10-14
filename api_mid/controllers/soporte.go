@@ -12,41 +12,6 @@ import (
 	beego "github.com/beego/beego/v2/server/web"
 )
 
-type EstadoPqr struct {
-	Id     int    `json:"Id"`
-	Nombre string `json:"Nombre"`
-}
-
-type Pqr struct {
-	Id            int       `json:"Id"`
-	IdUsuario     int       `json:"IdUsuario"`
-	Radicado      string    `json:"Radicado"`
-	Titulo        string    `json:"Titulo"`
-	Tipo          string    `json:"Tipo"`
-	Categoria     string    `json:"Categoria"`
-	Prioridad     string    `json:"Prioridad"`
-	Descripcion   string    `json:"Descripcion"`
-	IdEstado      *Ref      `json:"IdEstado"`
-	Activo        bool      `json:"Activo"`
-	FechaCreacion time.Time `json:"FechaCreacion"`
-}
-
-type RegistroActividad struct {
-	IdUsuario       *int   `json:"IdUsuario"`
-	TipoActividad   string `json:"TipoActividad"`
-	Descripcion     string `json:"Descripcion"`
-	EntidadAfectada string `json:"EntidadAfectada"`
-}
-
-type DatosPqr struct {
-	IdUsuario   int    `json:"id_usuario"`
-	Titulo      string `json:"titulo"`
-	Tipo        string `json:"tipo"`
-	Categoria   string `json:"categoria"`
-	Prioridad   string `json:"prioridad"`
-	Descripcion string `json:"descripcion"`
-}
-
 // SoporteController operations for Soporte
 type SoporteController struct {
 	beego.Controller
@@ -126,17 +91,7 @@ func (c *SoporteController) PostPqr() {
 		return
 	}
 
-	pqr := Pqr{
-		IdUsuario:   datos.IdUsuario,
-		Radicado:    "PQR-" + time.Now().Format("20060102-150405"),
-		Titulo:      datos.Titulo,
-		Tipo:        datos.Tipo,
-		Categoria:   datos.Categoria,
-		Prioridad:   datos.Prioridad,
-		Descripcion: datos.Descripcion,
-		IdEstado:    &Ref{Id: estados[0].Id},
-		Activo:      true,
-	}
+	pqr := 
 
 	jsonPqr, _ := json.Marshal(pqr)
 
@@ -178,14 +133,6 @@ func (c *SoporteController) PostPqr() {
 
 	c.Ctx.ResponseWriter.WriteHeader(http.StatusCreated)
 
-	c.Data["json"] = map[string]interface{}{
-		"id_pqr":    pqr.Id,
-		"radicado":  pqr.Radicado,
-		"titulo":    pqr.Titulo,
-		"tipo":      pqr.Tipo,
-		"prioridad": pqr.Prioridad,
-		"estado":    estados[0].Nombre,
-	}
 
 	c.ServeJSON()
 }
@@ -250,16 +197,6 @@ func (c *SoporteController) GetPqrUsuario() {
 			estado = nombreEstado[pqr.IdEstado.Id]
 		}
 
-		lista = append(lista, map[string]interface{}{
-			"id_pqr": pqr.Id,
-			"radicado": pqr.Radicado,
-			"titulo": pqr.Titulo,
-			"categoria" : pqr.Categoria,
-			"prioridad": pqr.Prioridad,
-			"estado": estado,
-			"descripcion": pqr.Descripcion,
-			"fecha_creacion": pqr.FechaCreacion,
-		})
 	}
 
 	c.Data["json"] = lista
