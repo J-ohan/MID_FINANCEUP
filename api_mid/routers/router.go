@@ -1,3 +1,8 @@
+// @APIVersion 1.0.0
+// @Title FinanceUp - API MID
+// @Description Une la informacion de los 5 CRUD de FinanceUp
+// @License Apache 2.0
+// @LicenseUrl http://www.apache.org/licenses/LICENSE-2.0.html
 package routers
 
 import (
@@ -7,8 +12,6 @@ import (
 )
 
 func init() {
-	beego.Router("/", &controllers.MainController{})
-
 	// Educacion (crud_educacion)
 	beego.Router("/v1/progreso-educativo/:id", &controllers.EducacionController{}, "get:GetProgresoEducativo")
 
