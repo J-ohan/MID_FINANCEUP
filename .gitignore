@@ -1,9 +1,7 @@
 *.exe
 *.exe~
+*.log
 lastupdate.tmp
-crud.log
-mid.log
-conexion_bd.conf
-crud_err.log
 .env
-
+api_mid/api_mid
+api_mid/swagger/
