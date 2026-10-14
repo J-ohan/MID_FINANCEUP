@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"strconv"
 
-	"api_mid_financeup/helpers"
+	"api_mid/helpers"
 
 	beego "github.com/beego/beego/v2/server/web"
 )
