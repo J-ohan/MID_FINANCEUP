@@ -97,4 +97,85 @@ func (c *AuthController) PostVerificarCodigo() {
 	helpers.Responder(&c.Controller, http.StatusOK, resultado)
 }
 
-func 
+// Post v1/login/social
+
+
+func (c *AuthController) PostLoginSocial() {
+
+	var datos models.DatosLoginSocial
+	if err := helpers.LeerBody(&c.Controller, &datos); err != nil {
+		helpers.ResponderError(&c.Controller, err)
+		return
+	}
+
+	resultado, err := services.IniciarSesionSocial(datos)
+	if err != nil {
+		helpers.ResponderError(&c.Controller, err)
+		return
+	}
+
+	helpers.Responder(&c.Controller, http.StatusOK, resultado)
+}
+
+//Post  v1/ recuperar-contrasena
+
+func (c *AuthController) PostRecuperarContrasena() {
+
+	var datos models.DatosContrasena
+	if err := helpers.LeerBody(&c.Controller, &datos); err != nil {
+		helpers.ResponderError(&c.Controller, err)
+		return
+	}
+
+	resultado, err := services.PedirCodigoRecuperacion(datos.Email)
+	if err != nil {
+		helpers.ResponderError(&c.Controller, err)
+		return
+	}
+
+	helpers.Responder(&c.Controller, http.StatusOK, resultado)
+}
+
+
+//Put v1/recuperar-contrasena (codigo + clave nueva)
+
+func (c *AuthController) PutRestablecerContrasena() {
+
+	var datos models.DatosContrasena
+	if err := helpers.LeerBody(&c.Controller, &datos); err != nil {
+		helpers.ResponderError(&c.Controller, err)
+		return
+	}
+
+	resultado, err := services.RestablecerContrasena(datos)
+	if err != nil {
+		helpers.ResponderError(&c.Controller, err)
+		return
+	}
+
+	helpers.Responder(&c.Controller, http.StatusOK, resultado)
+}
+
+//Put v1/perfil/:id/contrasena
+func (c *AuthController) PutCambiarContrasena() {
+
+	id, err := helpers.LeerId(&c.Controller)
+	if err != nil {
+		helpers.ResponderError(&c.Controller, err)
+		return
+	}
+
+	var datos models.DatosContrasena
+	if err := helpers.LeerBody(&c.Controller, &datos); err != nil {
+		helpers.ResponderError(&c.Controller, err)
+		return
+	}
+
+	resultado, err := services.CambiarContrasena(id, datos)
+	if err != nil {
+		helpers.ResponderError(&c.Controller, err)
+		return
+	}
+
+	helpers.Responder(&c.Controller, http.StatusOK, resultado)
+}
