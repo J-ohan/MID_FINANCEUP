@@ -23,6 +23,7 @@ func (c *FinanzasController) GetResumenFinanciero() {
 		helpers.ResponderError(&c.Controller, err)
 		return
 	}
+	
 
 	resultado, err := services.ResumenFinanciero(id)
 	if err != nil {
