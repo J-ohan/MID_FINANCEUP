@@ -15,6 +15,7 @@ type FinanzasController struct {
 	beego.Controller
 }
 
+
 // leerFiltros lee los filtros opcionales del libro mayor de la URL:
 // ?tipo=ingreso|gasto&categoria=3&desde=2026-01-01&hasta=2026-12-31&q=texto
 func (c *FinanzasController) leerFiltros() models.FiltrosMovimientos {
