@@ -1,3 +1,8 @@
 package models
 
-// Ref (llave foranea {"Id": 1}) ya esta definida en models/finanzas.go
+// Ref es una llave foranea tal como llega de los CRUD: {"Id": 1}
+// El CRUD manda un objeto con muchos campos vacios; solo
+// nos importa el Id.
+type Ref struct {
+	Id int `json:"Id"`
+}
