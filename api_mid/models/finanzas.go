@@ -57,9 +57,11 @@ type Inversion struct {
 }
 
 type HistorialInversion struct {
-	Id    int       `json:"Id"`
-	Fecha time.Time `json:"Fecha"`
-	Valor float64   `json:"Valor"`
+	Id          int       `json:"Id"`
+	IdInversion *Ref      `json:"IdInversion"`
+	Fecha       time.Time `json:"Fecha"`
+	Valor       float64   `json:"Valor"`
+	Activo      bool      `json:"Activo"`
 }
 
 // ------------------------------------------------------------
@@ -85,8 +87,38 @@ type DatosAbono struct {
 	Valor float64 `json:"valor"`
 }
 
+// DatosMovimiento: crear o editar un movimiento del libro mayor.
+// Trae los mismos campos de una fila del Excel mas el usuario.
+type DatosMovimiento struct {
+	IdUsuario int `json:"id_usuario"`
+	FilaExcel
+}
+
+// DatosMeta: crear o editar una meta de ahorro.
+type DatosMeta struct {
+	IdUsuario int     `json:"id_usuario"`
+	Nombre    string  `json:"nombre"`
+	Icono     string  `json:"icono"`
+	Actual    float64 `json:"actual"`
+	Objetivo  float64 `json:"objetivo"`
+}
+
+// DatosInversion: crear o editar una inversion.
+// El riesgo llega como texto: "Bajo", "Medio" o "Alto".
+type DatosInversion struct {
+	IdUsuario   int     `json:"id_usuario"`
+	Nombre      string  `json:"nombre"`
+	Monto       float64 `json:"monto"`
+	Rendimiento float64 `json:"rendimiento"`
+	Riesgo      string  `json:"riesgo"`
+	Duracion    string  `json:"duracion"`
+}
+
 // FiltrosMovimientos son los filtros opcionales del libro mayor
 type FiltrosMovimientos struct {
 	Tipo        string // "ingreso", "gasto" o vacio
 	IdCategoria int    // 0 = todas
+	Desde       string // AAAA-MM-DD o vacio
+	Hasta       string // AAAA-MM-DD o vacio
+	Texto       string // busca en el concepto
 }

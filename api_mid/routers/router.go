@@ -11,19 +11,64 @@ import (
 	beego "github.com/beego/beego/v2/server/web"
 )
 
+// Cada linea dice: cuando llegue esta RUTA con este METODO,
+// ejecutar esta FUNCION del controlador.
+//
+// Aqui solo estan las acciones que necesitan logica (unir tablas,
+// validar, calcular, cifrar). Las operaciones sencillas de una sola
+// tabla (crear, editar o borrar un registro) la pagina las hace
+// directo en el CRUD de cada modulo.
 func init() {
-	// Educacion (crud_educacion)
-	beego.Router("/v1/progreso-educativo/:id", &controllers.EducacionController{}, "get:GetProgresoEducativo")
+	// General
+	beego.Router("/v1/estado", &controllers.GeneralController{}, "get:Estado")
+	beego.Router("/v1/dashboard/:id", &controllers.GeneralController{}, "get:GetDashboard")
 
-	// Alianzas (crud_negocio)
-	beego.Router("/v1/ofertas", &controllers.NegocioController{}, "get:GetOfertas")
+	// Usuarios (crud_auth)
+	beego.Router("/v1/registro", &controllers.AuthController{}, "post:PostRegistro")
+	beego.Router("/v1/login", &controllers.AuthController{}, "post:PostLogin")
+	beego.Router("/v1/login/verificar", &controllers.AuthController{}, "post:PostVerificarCodigo")
+	beego.Router("/v1/login/social", &controllers.AuthController{}, "post:PostLoginSocial")
+	beego.Router("/v1/recuperar-contrasena", &controllers.AuthController{}, "post:PostRecuperarContrasena;put:PutRestablecerContrasena")
+	beego.Router("/v1/perfil/:id", &controllers.AuthController{}, "get:GetPerfil")
+	beego.Router("/v1/perfil/:id/contrasena", &controllers.AuthController{}, "put:PutCambiarContrasena")
 
 	// Finanzas (crud_finanzas)
 	beego.Router("/v1/resumen-financiero/:id", &controllers.FinanzasController{}, "get:GetResumenFinanciero")
+	beego.Router("/v1/categorias", &controllers.FinanzasController{}, "get:GetCategorias")
+	beego.Router("/v1/movimientos", &controllers.FinanzasController{}, "post:PostMovimiento")
+	beego.Router("/v1/movimientos/:id", &controllers.FinanzasController{}, "put:PutMovimiento;delete:DeleteMovimiento")
 	beego.Router("/v1/movimientos/usuario/:id", &controllers.FinanzasController{}, "get:GetMovimientos")
+	beego.Router("/v1/movimientos/usuario/:id/exportar", &controllers.FinanzasController{}, "get:GetExportarMovimientos")
 	beego.Router("/v1/movimientos/importar", &controllers.FinanzasController{}, "post:PostImportarMovimientos")
+	beego.Router("/v1/metas", &controllers.FinanzasController{}, "post:PostMeta")
+	beego.Router("/v1/metas/:id", &controllers.FinanzasController{}, "put:PutMeta;delete:DeleteMeta")
 	beego.Router("/v1/metas/usuario/:id", &controllers.FinanzasController{}, "get:GetMetas")
 	beego.Router("/v1/metas/:id/abono", &controllers.FinanzasController{}, "put:PutAbonoMeta")
+	beego.Router("/v1/inversiones", &controllers.FinanzasController{}, "post:PostInversion")
+	beego.Router("/v1/inversiones/:id", &controllers.FinanzasController{}, "put:PutInversion;delete:DeleteInversion")
 	beego.Router("/v1/inversiones/usuario/:id", &controllers.FinanzasController{}, "get:GetInversiones")
 	beego.Router("/v1/admin/finanzas", &controllers.FinanzasController{}, "get:GetAdminFinanzas")
+	beego.Router("/v1/admin/libro-mayor", &controllers.FinanzasController{}, "get:GetAdminLibroMayor")
+
+	// Educacion (crud_educacion)
+	beego.Router("/v1/cursos", &controllers.EducacionController{}, "get:GetCursos")
+	beego.Router("/v1/cursos/:id", &controllers.EducacionController{}, "get:GetCurso")
+	beego.Router("/v1/cursos/:id/reiniciar", &controllers.EducacionController{}, "post:PostReiniciarCurso")
+	beego.Router("/v1/clase/:id", &controllers.EducacionController{}, "get:GetClase")
+	beego.Router("/v1/clase/:id/completar", &controllers.EducacionController{}, "post:PostCompletarLeccion")
+	beego.Router("/v1/progreso-educativo/:id", &controllers.EducacionController{}, "get:GetProgresoEducativo")
+	beego.Router("/v1/certificado", &controllers.EducacionController{}, "post:PostCertificado")
+
+	// Alianzas (crud_negocio)
+	beego.Router("/v1/ofertas", &controllers.NegocioController{}, "get:GetOfertas")
+	beego.Router("/v1/ofertas/:id", &controllers.NegocioController{}, "get:GetOferta")
+	beego.Router("/v1/solicitud-credito", &controllers.NegocioController{}, "post:PostSolicitudCredito")
+	beego.Router("/v1/solicitud-credito/usuario/:id", &controllers.NegocioController{}, "get:GetSolicitudesUsuario")
+
+	// PQR (crud_soporte)
+	beego.Router("/v1/pqr", &controllers.SoporteController{}, "post:PostPqr")
+	beego.Router("/v1/pqr/usuario/:id", &controllers.SoporteController{}, "get:GetPqrUsuario")
+	beego.Router("/v1/pqr/radicado/:radicado", &controllers.SoporteController{}, "get:GetPqr")
+	beego.Router("/v1/pqr/:id/respuesta", &controllers.SoporteController{}, "post:PostRespuestaPqr")
+	beego.Router("/v1/admin/pqr", &controllers.SoporteController{}, "get:GetPqrAdmin")
 }
