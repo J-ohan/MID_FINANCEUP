@@ -15,6 +15,7 @@ type FinanzasController struct {
 	beego.Controller
 }
 
+
 // GET /v1/resumen-financiero/:id
 func (c *FinanzasController) GetResumenFinanciero() {
 
@@ -23,7 +24,7 @@ func (c *FinanzasController) GetResumenFinanciero() {
 		helpers.ResponderError(&c.Controller, err)
 		return
 	}
-	
+
 
 	resultado, err := services.ResumenFinanciero(id)
 	if err != nil {
