@@ -15,24 +15,6 @@ type Ref struct {
 }
 
 // auth.usuario (crud_auth)
-type Usuario struct {
-	Id                int       `json:"Id"`
-	TipoDocumento     *Ref      `json:"TipoDocumento"`
-	Nombre            string    `json:"Nombre"`
-	Apellido          string    `json:"Apellido"`
-	Email             string    `json:"Email"`
-	Telefono          string    `json:"Telefono"`
-	Cedula            string    `json:"Cedula"`
-	Ciudad            string    `json:"Ciudad"`
-	Direccion         string    `json:"Direccion"`
-	FechaNacimiento   time.Time `json:"FechaNacimiento"`
-	Estado            string    `json:"Estado"`
-	FechaRegistro     time.Time `json:"FechaRegistro"`
-	FechaUltimaSesion time.Time `json:"FechaUltimaSesion"`
-	Activo            bool      `json:"Activo"`
-	FechaCreacion     time.Time `json:"FechaCreacion"`
-	FechaModificacion time.Time `json:"FechaModificacion"`
-}
 
 // finanzas.categoria
 type Categoria struct {

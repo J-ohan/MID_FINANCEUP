@@ -1,6 +1,6 @@
-module api_mid_financeup
+module api_mid
 
-go 1.26.0
+go 1.27.1
 
 require (
 	github.com/beego/beego/v2 v2.3.10
