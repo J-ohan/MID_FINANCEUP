@@ -138,3 +138,14 @@ func (c *FinanzasController) GetInversiones() {
 	helpers.Responder(&c.Controller, http.StatusOK, resultado)
 }
 
+// GET /v1/admin/finanzas
+func (c *FinanzasController) GetAdminFinanzas() {
+
+	resultado, err := services.FinanzasAdmin()
+	if err != nil {
+		helpers.ResponderError(&c.Controller, err)
+		return
+	}
+
+	helpers.Responder(&c.Controller, http.StatusOK, resultado)
+}
