@@ -119,3 +119,22 @@ func (c *FinanzasController) PutAbonoMeta() {
 }
 
 
+
+// GET /v1/inversiones/usuario/:id
+func (c *FinanzasController) GetInversiones() {
+
+	id, err := helpers.LeerId(&c.Controller)
+	if err != nil {
+		helpers.ResponderError(&c.Controller, err)
+		return
+	}
+
+	resultado, err := services.InversionesUsuario(id)
+	if err != nil {
+		helpers.ResponderError(&c.Controller, err)
+		return
+	}
+
+	helpers.Responder(&c.Controller, http.StatusOK, resultado)
+}
+
