@@ -250,3 +250,64 @@ func ResponderPqr(idPqr int, datos models.DatosRespuestaPqr) (map[string]interfa
 		return nil, err
 	}
 }
+
+	// 3. Actualizar la PQR: estado, progreso y ultimo mensaje del asesor
+	if datos.Estado != "" {
+		if estado, existe := buscarEstado(datos.Estado); existe {
+			pqr.IdEstado = &models.Ref{Id: estado.Id}
+		}
+	}
+
+	if datos.Progreso > 0 && datos.Progreso <= 100 {
+		pqr.Progreso = datos.Progreso
+	}
+
+	if datos.Autor != "Usuario" {
+		pqr.Asesor = datos.Autor
+		pqr.MensajeRespuesta = datos.Mensaje
+	}
+
+	helpers.Actualizar(direccion, pqr)
+
+	return map[string]interface{}{"mensaje": "Respuesta guardada", "radicado": pqr.Radicado, "progreso": pqr.Progreso}, nil
+}
+
+// PqrAdmin: todas las PQR con su estado y el nombre del usuario.
+func PqrAdmin() ([]map[string]interface{}, error) {
+
+	var pqrs []models.Pqr
+
+	if err := helpers.ConsultarLista(helpers.UrlCrudSoporte+"/pqr?query=activo:true&sortby=Id&order=desc&limit=10000", &pqrs); err != nil {
+		return nil, err
+	}
+
+	estados, err := estadosPorId()
+
+	if err != nil {
+		return nil, err
+	}
+
+	nombres, err := NombresUsuarios()
+
+	if err != nil {
+		return nil, err
+	}
+
+	lista := []map[string]interface{}{}
+
+	for _, pqr := range pqrs {
+		lista = append(lista, map[string]interface{}{
+			"id_pqr":         pqr.Id,
+			"radicado":       pqr.Radicado,
+			"titulo":         pqr.Titulo,
+			"tipo":           pqr.Tipo,
+			"prioridad":      pqr.Prioridad,
+			"estado":         estados[pqr.IdEstado.Id],
+			"progreso":       pqr.Progreso,
+			"usuario":        nombres[pqr.IdUsuario],
+			"fecha_creacion": pqr.FechaCreacion,
+		})
+	}
+
+	return lista, nil
+}
