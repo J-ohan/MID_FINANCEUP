@@ -91,5 +91,31 @@ func (c *FinanzasController) GetMetas() {
 	}
 
 	helpers.Responder(&c.Controller, http.StatusOK, resultado)
-	
+
 }
+
+// PUT /v1/metas/:id/abono
+func (c *FinanzasController) PutAbonoMeta() {
+
+	id, err := helpers.LeerId(&c.Controller)
+	if err != nil {
+		helpers.ResponderError(&c.Controller, err)
+		return
+	}
+
+	var datos models.DatosAbono
+	if err := helpers.LeerBody(&c.Controller, &datos); err != nil {
+		helpers.ResponderError(&c.Controller, err)
+		return
+	}
+
+	resultado, err := services.AbonarMeta(id, datos.Valor)
+	if err != nil {
+		helpers.ResponderError(&c.Controller, err)
+		return
+	}
+
+	helpers.Responder(&c.Controller, http.StatusOK, resultado)
+}
+
+
