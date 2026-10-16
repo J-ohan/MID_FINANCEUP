@@ -1,7 +1,7 @@
 package main
 
 import (
-	_ "api_mid_financeup/routers"
+	_ "api_mid/routers"
 
 	beego "github.com/beego/beego/v2/server/web"
 	"github.com/beego/beego/v2/server/web/filter/cors"
