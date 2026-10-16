@@ -22,7 +22,6 @@ func RegistrarActividad(idUsuario int, tipo string, descripcion string, entidad 
 	helpers.Crear(helpers.UrlCrudSoporte+"/registro_actividad", actividad, nil)
 }
 
-// estadosPorId devuelve un mapa id -> nombre del estado.
 func estadosPorId() (map[int]string, error) {
 
 	var estados []models.EstadoPqr
@@ -39,7 +38,6 @@ func estadosPorId() (map[int]string, error) {
 	return nombres, nil
 }
 
-// buscarEstado busca un estado por su nombre (ej: "Abierta").
 func buscarEstado(nombre string) (models.EstadoPqr, bool) {
 
 	var estados []models.EstadoPqr
@@ -78,7 +76,6 @@ func RadicarPqr(datos models.DatosPqr) (map[string]interface{}, error) {
 		return nil, helpers.NuevoError(http.StatusInternalServerError, "No existe el estado Abierta en la base de datos")
 	}
 
-	// 3. Guardar la PQR (radicado: PQR- + fecha y hora, ej: PQR-20261009-153045)
 	pqr := models.Pqr{
 		IdUsuario:   datos.IdUsuario,
 		Radicado:    "PQR-" + time.Now().Format("20060102-150405"),
@@ -94,36 +91,36 @@ func RadicarPqr(datos models.DatosPqr) (map[string]interface{}, error) {
 	if err := helpers.Crear(helpers.UrlCrudSoporte+"/pqr", pqr, &pqr); err != nil {
 		return nil, err
 	}
-	
 
-	adjuntosGuaradados := 0
+	adjuntosGuardados := 0
 
-	for _, archivo :=range datos.Adjuntos{
+	for _, archivo := range datos.Adjuntos {
 
 		adjunto := models.Adjunto{
-			IdPqr: &models.Ref{Id: pqr.Id},
+			IdPqr:         &models.Ref{Id: pqr.Id},
 			NombreArchivo: archivo.NombreArchivo,
-			RutaArchivo: archivo.RutaArchivo,
-			TipoMime: archivo.TipoMime,
-			TamanoBytes: archivo.TamanoBytes,
-			Activo: true,
-
+			RutaArchivo:   archivo.RutaArchivo,
+			TipoMime:      archivo.TipoMime,
+			TamanoBytes:   archivo.TamanoBytes,
+			Activo:        true,
 		}
-		if helpers.Crear(helpers.UrlCrudSoporte+"/abjunto", adjunto, nil)== nil{  
-			adjuntosGuaradados++
+
+		if helpers.Crear(helpers.UrlCrudSoporte+"/adjunto", adjunto, nil) == nil {
+			adjuntosGuardados++
 		}
 	}
 
-	RegistrarActividad(datos.IdUsuario, "CREAR_PQR", "se radico la pqr"+pqr.Radicado, "soporte.pqr")
+	// 5. Dejar registro de la actividad
+	RegistrarActividad(datos.IdUsuario, "CREAR_PQR", "Se radico la PQR "+pqr.Radicado, "soporte.pqr")
 
 	return map[string]interface{}{
-		"id_pqr": pqr.Id,
-		"radicado": pqr.Radicado,
-		"titulo": pqr.Titulo,
-		"tipo": pqr.Tipo,
+		"id_pqr":    pqr.Id,
+		"radicado":  pqr.Radicado,
+		"titulo":    pqr.Titulo,
+		"tipo":      pqr.Tipo,
 		"prioridad": pqr.Prioridad,
-		"estado": pqr.IdEstado,
-		"adjuntos": adjuntosGuaradados,
+		"estado":    estado.Nombre,
+		"adjuntos":  adjuntosGuardados,
 	}, nil
 }
 
@@ -137,7 +134,7 @@ func PqrUsuario(idUsuario int) ([]map[string]interface{}, error) {
 
 	estados, err := estadosPorId()
 
-	if err != nil{
+	if err != nil {
 		return nil, err
 	}
 
@@ -222,4 +219,34 @@ func VerPqr(radicado string) (map[string]interface{}, error) {
 		"respuestas":           listaRespuestas,
 		"adjuntos":             listaAdjuntos,
 	}, nil
+}
+
+func ResponderPqr(idPqr int, datos models.DatosRespuestaPqr) (map[string]interface{}, error) {
+
+	if datos.Mensaje == "" {
+		return nil, helpers.NuevoError(http.StatusBadRequest, "El mensaje es obligatorio")
+	}
+
+	if datos.Autor == "" {
+		datos.Autor = "Usuario"
+	}
+
+	// 1. La PQR
+	var pqr models.Pqr
+	direccion := fmt.Sprintf("%s/pqr/%d", helpers.UrlCrudSoporte, idPqr)
+
+	if err := helpers.ConsultarUno(direccion, &pqr, "La PQR no existe"); err != nil {
+		return nil, err
+	}
+
+	// 2. Guardar la respuesta
+	respuesta := models.RespuestaPqr{IdPqr: &models.Ref{Id: idPqr}, Autor: datos.Autor, Mensaje: datos.Mensaje, Activo: true}
+
+	if datos.IdUsuario > 0 {
+		respuesta.IdUsuario = &datos.IdUsuario
+	}
+
+	if err := helpers.Crear(helpers.UrlCrudSoporte+"/respuesta_pqr", respuesta, nil); err != nil {
+		return nil, err
+	}
 }
