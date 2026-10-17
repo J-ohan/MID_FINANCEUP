@@ -1,6 +1,3 @@
-<<<<<<< HEAD
-package helpers
-=======
 package helpers
 
 import "os"

@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"api_mid/helpers"
-	"api_mid/models"
+	"api_mid_financeup/helpers"
+	"api_mid_financeup/models"
 )
 
 // BuscarUsuario trae un usuario por su id (lo usan otros modulos).
