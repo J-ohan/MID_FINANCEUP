@@ -3,9 +3,9 @@ package controllers
 import (
 	"net/http"
 
-	"api_mid/models"
-	"api_mid/services"
-	"api_mid/helpers"
+	"api_mid_financeup/models"
+	"api_mid_financeup/services"
+	"api_mid_financeup/helpers"
 	
 
 	beego "github.com/beego/beego/v2/server/web"

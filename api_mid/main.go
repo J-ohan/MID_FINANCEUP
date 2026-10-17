@@ -1,12 +1,8 @@
 package main
 
 import (
-<<<<<<< HEAD
-	_ "api_mid/routers"
-=======
 	"api_mid_financeup/helpers"
 	_ "api_mid_financeup/routers"
->>>>>>> dac29da4b0ac2c7231be81b102fe327aedaf9cf4
 
 	beego "github.com/beego/beego/v2/server/web"
 	"github.com/beego/beego/v2/server/web/filter/cors"
