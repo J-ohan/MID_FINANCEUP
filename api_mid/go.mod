@@ -1,9 +1,10 @@
-module api_mid
+module api_mid_financeup
 
-go 1.27.1
+go 1.26.0
 
 require (
 	github.com/beego/beego/v2 v2.3.10
+	github.com/joho/godotenv v1.5.1
 	golang.org/x/crypto v0.57.0
 )
 
@@ -11,7 +12,6 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/hashicorp/golang-lru v1.0.2 // indirect
-	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
