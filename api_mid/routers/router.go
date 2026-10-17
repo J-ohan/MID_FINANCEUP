@@ -12,6 +12,9 @@ import (
 )
 
 func init() {
+	// General (para probar que los CRUD esten encendidos)
+	beego.Router("/v1/estado", &controllers.GeneralController{}, "get:Estado")
+
 	// Educacion (crud_educacion)
 	beego.Router("/v1/progreso-educativo/:id", &controllers.EducacionController{}, "get:GetProgresoEducativo")
 
