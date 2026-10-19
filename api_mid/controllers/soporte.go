@@ -114,6 +114,7 @@ func (c *SoporteController) PostPqr() {
 		c.ServeJSON()
 		return
 	}
+	
 
 	json.Unmarshal(bodyCrear, &pqr)
 
