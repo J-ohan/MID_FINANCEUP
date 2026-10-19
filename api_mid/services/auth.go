@@ -11,10 +11,10 @@ import (
 	"api_mid_financeup/models"
 )
 
-// ============================================================
+
 // SERVICE DE USUARIOS (crud_auth)
 // Aqui esta la logica: validar, cifrar, bloquear, crear codigos.
-// ============================================================
+
 
 // BuscarUsuario trae un usuario por su id (lo usan otros modulos).
 func BuscarUsuario(id int) (models.Usuario, error) {
