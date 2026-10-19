@@ -324,6 +324,7 @@ func IniciarSesion(datos models.DatosLogin) (map[string]interface{}, error) {
 	errorLogin := helpers.NuevoError(http.StatusUnauthorized, "Correo o contrasena incorrectos")
 
 	// 1. Buscar el usuario (mismo mensaje si no existe o si la clave esta mal)
+
 	usuario, existe, err := buscarUsuarioPorEmail(strings.ToLower(strings.TrimSpace(datos.Email)))
 
 	if err != nil {
@@ -431,3 +432,152 @@ func VerificarCodigo(datos models.DatosCodigo) (map[string]interface{}, error) {
 		"email":      usuario.Email,
 	}, nil
 }
+
+// IniciarSesionSocial: entrar con Google, Apple o Facebook.
+// La pagina habla con esos servicios y aqui llegan sus datos.
+func IniciarSesionSocial(datos models.DatosLoginSocial) (map[string]interface{}, error) {
+
+	datos.Email = strings.ToLower(strings.TrimSpace(datos.Email))
+
+	// 1. Validar
+	if datos.Proveedor != "google" && datos.Proveedor != "apple" && datos.Proveedor != "facebook" {
+		return nil, helpers.NuevoError(http.StatusBadRequest, "El proveedor debe ser: google, apple o facebook")
+	}
+
+	if datos.IdExterno == "" || datos.Email == "" {
+		return nil, helpers.NuevoError(http.StatusBadRequest, "Faltan el id_externo o el email")
+	}
+
+	// 2. Buscar si la cuenta social ya existe
+	var cuentas []models.CuentaSocial
+
+	if err := helpers.ConsultarLista(helpers.UrlCrudAuth+"/cuenta_social?query=proveedor:"+datos.Proveedor+",id_externo:"+url.QueryEscape(datos.IdExterno), &cuentas); err != nil {
+		return nil, err
+	}
+
+	if len(cuentas) > 0 {
+		return respuestaSocial(cuentas[0].IdUsuario.Id, datos), nil
+	}
+
+	// 3. Si no existe, buscar el usuario por correo; si tampoco existe, crearlo
+
+	usuario, existe, err := buscarUsuarioPorEmail(datos.Email)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if !existe {
+
+		usuario = models.Usuario{Nombre: datos.Nombre, Apellido: datos.Apellido, Email: datos.Email, Estado: "activo", Activo: true}
+
+		if err := helpers.Crear(helpers.UrlCrudAuth+"/usuario", usuario, &usuario); err != nil {
+			return nil, err
+		}
+
+		asignarRolUsuario(usuario.Id)
+	}
+
+	// 4. Vincular la cuenta social al usuario
+
+	cuenta := models.CuentaSocial{
+		IdUsuario:      &models.Ref{Id: usuario.Id},
+		Proveedor:      datos.Proveedor,
+		IdExterno:      datos.IdExterno,
+		EmailProveedor: datos.Email,
+		Activo:         true,
+	}
+
+	helpers.Crear(helpers.UrlCrudAuth+"/cuenta_social", cuenta, nil)
+
+	return respuestaSocial(usuario.Id, datos), nil
+}
+
+func respuestaSocial(idUsuario int, datos models.DatosLoginSocial) map[string]interface{} {
+	return map[string]interface{}{
+		"mensaje":    "Inicio de sesion exitoso",
+		"id_usuario": idUsuario,
+		"email":      datos.Email,
+		"proveedor":  datos.Proveedor,
+	}
+}
+
+// PedirCodigoRecuperacion: crea un codigo para cambiar la clave olvidada.
+// Siempre responde lo mismo, para no revelar que correos existen.
+
+func PedirCodigoRecuperacion(email string) (map[string]interface{}, error) {
+
+	respuesta := map[string]interface{}{"mensaje": "Si el correo esta registrado, te enviamos un codigo"}
+
+	email = strings.ToLower(strings.TrimSpace(email))
+
+	usuario, existe, err := buscarUsuarioPorEmail(email)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if existe {
+		crearCodigo(usuario.Id, email, "recuperar_contrasena", 15)
+	}
+
+	return respuesta, nil
+}
+
+// RestablecerContrasena: valida el codigo y guarda la clave nueva
+
+func RestablecerContrasena(datos models.DatosContrasena) (map[string]interface{}, error) {
+
+	if len(datos.ContrasenaNueva) < 8 {
+		return nil, helpers.NuevoError(http.StatusBadRequest, "La contrasena debe tener minimo 8 caracteres")
+	}
+
+	usuario, existe, err := buscarUsuarioPorEmail(strings.ToLower(strings.TrimSpace(datos.Email)))
+
+	if err != nil {
+		return nil, err
+	}
+
+	if !existe {
+		return nil, helpers.NuevoError(http.StatusUnauthorized, "El codigo no es correcto")
+	}
+
+	if err := validarCodigo(usuario.Id, "recuperar_contrasena", datos.Codigo); err != nil {
+		return nil, err
+	}
+
+	if err := guardarContrasena(usuario.Id, datos.ContrasenaNueva); err != nil {
+		return nil, err
+	}
+
+	return map[string]interface{}{"mensaje": "Contrasena actualizada"}, nil
+}
+
+// CambiarContrasena: desde el perfil, pidiendo la clave actual
+
+func CambiarContrasena(idUsuario int, datos models.DatosContrasena) (map[string]interface{}, error) {
+
+	if len(datos.ContrasenaNueva) < 8 {
+		return nil, helpers.NuevoError(http.StatusBadRequest, "La contrasena nueva debe tener minimo 8 caracteres")
+	}
+
+	credencial, tiene, err := buscarCredencial(idUsuario)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if !tiene {
+		return nil, helpers.NuevoError(http.StatusNotFound, "El usuario no tiene contrasena")
+	}
+
+	if !helpers.CoincideCifrado(credencial.ContrasenaHash, datos.ContrasenaActual) {
+		return nil, helpers.NuevoError(http.StatusUnauthorized, "La contrasena actual no es correcta")
+	}
+
+	if err := guardarContrasena(idUsuario, datos.ContrasenaNueva); err != nil {
+		return nil, err
+	}
+
+	return map[string]interface{}{"mensaje": "Contrasena actualizada"}, nil
+
