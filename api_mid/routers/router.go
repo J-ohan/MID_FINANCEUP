@@ -27,5 +27,12 @@ func init() {
 	beego.Router("/v1/movimientos/importar", &controllers.FinanzasController{}, "post:PostImportarMovimientos")
 	beego.Router("/v1/metas/usuario/:id", &controllers.FinanzasController{}, "get:GetMetas")
 	// Pendiente: abono de metas, inversiones y vista de admin
-	// (los services ya estan en services/finanzas.go)
+
+	
+	// PQR (crud_soporte)
+	beego.Router("/v1/pqr", &controllers.SoporteController{}, "post:PostPqr")
+	beego.Router("/v1/pqr/usuario/:id", &controllers.SoporteController{}, "get:GetPqrUsuario")
+	beego.Router("/v1/pqr/radicado/:radicado", &controllers.SoporteController{}, "get:GetPqr")
+	beego.Router("/v1/pqr/:id/respuesta", &controllers.SoporteController{}, "post:PostRespuestaPqr")
+	beego.Router("/v1/admin/pqr", &controllers.SoporteController{}, "get:GetPqrAdmin")
 }
