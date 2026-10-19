@@ -110,7 +110,6 @@ func RadicarPqr(datos models.DatosPqr) (map[string]interface{}, error) {
 		}
 	}
 
-	// 5. Dejar registro de la actividad
 	RegistrarActividad(datos.IdUsuario, "CREAR_PQR", "Se radico la PQR "+pqr.Radicado, "soporte.pqr")
 
 	return map[string]interface{}{
@@ -249,7 +248,6 @@ func ResponderPqr(idPqr int, datos models.DatosRespuestaPqr) (map[string]interfa
 	if err := helpers.Crear(helpers.UrlCrudSoporte+"/respuesta_pqr", respuesta, nil); err != nil {
 		return nil, err
 	}
-}
 
 	// 3. Actualizar la PQR: estado, progreso y ultimo mensaje del asesor
 	if datos.Estado != "" {
