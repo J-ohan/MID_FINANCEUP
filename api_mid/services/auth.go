@@ -205,7 +205,7 @@ func ObtenerPerfil(id int) (map[string]interface{}, error) {
 	}
 
 	// 4. Armar el perfil
-	
+
 	cedula := ""
 	if usuario.Cedula != nil {
 		cedula = *usuario.Cedula
@@ -317,3 +317,117 @@ func Registrar(datos models.DatosRegistro) (map[string]interface{}, error) {
 }
 
 
+// IniciarSesion: paso 1 del login. Valida correo y clave y crea el codigo.
+// Bloquea la cuenta 15 minutos tras 5 intentos fallidos.
+func IniciarSesion(datos models.DatosLogin) (map[string]interface{}, error) {
+
+	errorLogin := helpers.NuevoError(http.StatusUnauthorized, "Correo o contrasena incorrectos")
+
+	// 1. Buscar el usuario (mismo mensaje si no existe o si la clave esta mal)
+	usuario, existe, err := buscarUsuarioPorEmail(strings.ToLower(strings.TrimSpace(datos.Email)))
+
+	if err != nil {
+		return nil, err
+	}
+
+	if !existe {
+		return nil, errorLogin
+	}
+
+	if !usuario.Activo || usuario.Estado != "activo" {
+		return nil, helpers.NuevoError(http.StatusForbidden, "La cuenta esta inactiva")
+	}
+
+	// 2. Buscar su credencial y revisar si esta bloqueada 
+
+	credencial, tiene, err := buscarCredencial(usuario.Id)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if !tiene {
+		return nil, errorLogin
+	}
+
+	ahora := time.Now().UTC()
+
+	if credencial.BloqueadoHasta.After(ahora) {
+		return nil, helpers.NuevoError(http.StatusLocked, "Cuenta bloqueada por intentos fallidos. Intenta de nuevo en 15 minutos.")
+	}
+
+	// 3. Comparar la clave y actualizar los intentos fallidos
+	claveCorrecta := helpers.CoincideCifrado(credencial.ContrasenaHash, datos.Contrasena)
+
+	if claveCorrecta {
+		credencial.IntentosFallidos = 0
+	} else {
+		credencial.IntentosFallidos++
+		if credencial.IntentosFallidos >= 5 {
+			credencial.IntentosFallidos = 0
+			credencial.BloqueadoHasta = ahora.Add(15 * time.Minute)
+		}
+	}
+
+	helpers.Actualizar(fmt.Sprintf("%s/credencial/%d", helpers.UrlCrudAuth, credencial.Id), credencial)
+
+	// 4. Guardar el intento en la auditoria
+
+	estadoEvento := "exitoso"
+	if !claveCorrecta {
+		estadoEvento = "fallido"
+	}
+
+	auditoria := models.AuditoriaLogin{
+		IdUsuario:    &models.Ref{Id: usuario.Id},
+		TipoEvento:   "login",
+		IpAddress:    datos.Ip,
+		Navegador:    datos.Navegador,
+		EstadoEvento: estadoEvento,
+	}
+
+	helpers.Crear(helpers.UrlCrudAuth+"/auditoria_login", auditoria, nil)
+
+	if !claveCorrecta {
+		return nil, errorLogin
+	}
+
+	// 5. Crear el codigo de 6 numeros (vence en 10 minutos)
+
+	if err := crearCodigo(usuario.Id, usuario.Email, "login_2fa", 10); err != nil {
+		return nil, err
+	}
+
+	return map[string]interface{}{
+		"mensaje":         "Te enviamos un codigo de verificacion",
+		"requiere_codigo": true,
+		"id_usuario":      usuario.Id,
+	}, nil
+}
+
+// VerificarCodigo: paso 2 del login. Valida el codigo de 6 numeros
+
+func VerificarCodigo(datos models.DatosCodigo) (map[string]interface{}, error) {
+
+	if err := validarCodigo(datos.IdUsuario, "login_2fa", datos.Codigo); err != nil {
+		return nil, err
+	}
+
+	// Guardar la fecha de la sesion
+	usuario, err := BuscarUsuario(datos.IdUsuario)
+
+	if err != nil {
+		return nil, err
+	}
+
+	usuario.FechaUltimaSesion = time.Now().UTC()
+	helpers.Actualizar(fmt.Sprintf("%s/usuario/%d", helpers.UrlCrudAuth, usuario.Id), usuario)
+
+	return map[string]interface{}{
+		"mensaje":    "Inicio de sesion exitoso",
+		"id_usuario": usuario.Id,
+		"nombre":     usuario.Nombre,
+		"apellido":   usuario.Apellido,
+		"email":      usuario.Email,
+	}, nil
+}
