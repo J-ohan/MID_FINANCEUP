@@ -22,6 +22,14 @@ func init() {
 	// Alianzas (crud_negocio)
 	beego.Router("/v1/ofertas", &controllers.NegocioController{}, "get:GetOfertas")
 
+
+	// PQR (crud_soporte)
+	beego.Router("/v1/pqr", &controllers.SoporteController{}, "post:PostPqr")
+	beego.Router("/v1/pqr/usuario/:id", &controllers.SoporteController{}, "get:GetPqrUsuario")
+	beego.Router("/v1/pqr/radicado/:radicado", &controllers.SoporteController{}, "get:GetPqr")
+	beego.Router("/v1/pqr/:id/respuesta", &controllers.SoporteController{}, "post:PostRespuestaPqr")
+	beego.Router("/v1/admin/pqr", &controllers.SoporteController{}, "get:GetPqrAdmin")
+
 	// Finanzas (crud_finanzas) - controladores en controllers/finanzas/
 	// Crear, editar o borrar movimientos, metas e inversiones, y la lista
 	// de categorias, la pagina los hace directo en crud_finanzas (8082).
