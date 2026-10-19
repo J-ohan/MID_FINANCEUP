@@ -11,6 +11,11 @@ import (
 	"api_mid_financeup/models"
 )
 
+// ============================================================
+// SERVICE DE USUARIOS (crud_auth)
+// Aqui esta la logica: validar, cifrar, bloquear, crear codigos.
+// ============================================================
+
 // BuscarUsuario trae un usuario por su id (lo usan otros modulos).
 func BuscarUsuario(id int) (models.Usuario, error) {
 	var usuario models.Usuario
@@ -51,8 +56,7 @@ func NombresUsuarios() (map[int]string, error) {
 	return nombres, nil
 }
 
-// asignarRolUsuario le da el rol "Usuario" a un usuario nuevo
-
+// asignarRolUsuario le da el rol "Usuario" a un usuario nuevo.
 func asignarRolUsuario(idUsuario int) error {
 
 	var roles []models.Rol
@@ -70,6 +74,23 @@ func asignarRolUsuario(idUsuario int) error {
 	return helpers.Crear(helpers.UrlCrudAuth+"/usuario_rol", asignacion, nil)
 }
 
+// buscarCredencial trae la clave cifrada de un usuario (si tiene).
+func buscarCredencial(idUsuario int) (models.Credencial, bool, error) {
+
+	var credenciales []models.Credencial
+
+	if err := helpers.ConsultarLista(fmt.Sprintf("%s/credencial?query=id_usuario:%d", helpers.UrlCrudAuth, idUsuario), &credenciales); err != nil {
+		return models.Credencial{}, false, err
+	}
+
+	if len(credenciales) == 0 {
+		return models.Credencial{}, false, nil
+	}
+
+	return credenciales[0], true, nil
+}
+
+// crearCodigo crea un codigo de 6 numeros, lo guarda cifrado y lo "envia".
 // Por ahora el envio es mostrarlo en la consola del MID.
 func crearCodigo(idUsuario int, email string, proposito string, minutos int) error {
 
@@ -87,16 +108,15 @@ func crearCodigo(idUsuario int, email string, proposito string, minutos int) err
 	if err := helpers.Crear(helpers.UrlCrudAuth+"/codigo_verificacion", nuevoCodigo, nil); err != nil {
 		return err
 	}
-	
-// Cuando haya servicio de correo, aqui se envia al email
+
+	// Cuando haya servicio de correo, aqui se envia al email
 	fmt.Println("[CODIGO "+proposito+"]", email, codigo)
 
 	return nil
 }
 
-
-// Si es correcto lo desactiva (no sirve dos veces); si no, suma un intento
-
+// validarCodigo revisa el ultimo codigo activo del usuario.
+// Si es correcto lo desactiva (no sirve dos veces); si no, suma un intento.
 func validarCodigo(idUsuario int, proposito string, codigoEscrito string) error {
 
 	var codigos []models.CodigoVerificacion
@@ -134,9 +154,7 @@ func validarCodigo(idUsuario int, proposito string, codigoEscrito string) error 
 	return nil
 }
 
-
-// guardarContrasena guarda una clave nueva cifrada (crea la credencial si no existe)
-
+// guardarContrasena guarda una clave nueva cifrada (crea la credencial si no existe).
 func guardarContrasena(idUsuario int, contrasena string) error {
 
 	credencial, existe, err := buscarCredencial(idUsuario)
@@ -162,12 +180,11 @@ func guardarContrasena(idUsuario int, contrasena string) error {
 	return helpers.Actualizar(fmt.Sprintf("%s/credencial/%d", helpers.UrlCrudAuth, credencial.Id), credencial)
 }
 
-
+// ------------------------------------------------------------
 // Funciones que usan los controladores
-
+// ------------------------------------------------------------
 
 // ObtenerPerfil: usuario + tipo de documento + roles
-
 func ObtenerPerfil(id int) (map[string]interface{}, error) {
 
 	// 1. El usuario
@@ -188,7 +205,6 @@ func ObtenerPerfil(id int) (map[string]interface{}, error) {
 	}
 
 	// 3. Sus roles
-
 	var asignaciones []models.UsuarioRol
 
 	if err := helpers.ConsultarLista(fmt.Sprintf("%s/usuario_rol?query=id_usuario:%d,activo:true&limit=1000", helpers.UrlCrudAuth, id), &asignaciones); err != nil {
@@ -205,7 +221,6 @@ func ObtenerPerfil(id int) (map[string]interface{}, error) {
 	}
 
 	// 4. Armar el perfil
-
 	cedula := ""
 	if usuario.Cedula != nil {
 		cedula = *usuario.Cedula
@@ -233,7 +248,6 @@ func ObtenerPerfil(id int) (map[string]interface{}, error) {
 }
 
 // Registrar: crea usuario + clave cifrada + rol "Usuario"
-
 func Registrar(datos models.DatosRegistro) (map[string]interface{}, error) {
 
 	datos.Email = strings.ToLower(strings.TrimSpace(datos.Email))
@@ -256,7 +270,6 @@ func Registrar(datos models.DatosRegistro) (map[string]interface{}, error) {
 	}
 
 	// 2. Revisar que el correo no este registrado
-
 	_, existe, err := buscarUsuarioPorEmail(datos.Email)
 
 	if err != nil {
@@ -268,7 +281,6 @@ func Registrar(datos models.DatosRegistro) (map[string]interface{}, error) {
 	}
 
 	// 3. Crear el usuario
-
 	nuevoUsuario := models.Usuario{
 		Nombre:                  datos.Nombre,
 		Apellido:                datos.Apellido,
@@ -283,7 +295,6 @@ func Registrar(datos models.DatosRegistro) (map[string]interface{}, error) {
 	}
 
 	// La cedula es opcional: si no llega se deja en nil para que se guarde NULL
-
 	if datos.Cedula != "" {
 		nuevoUsuario.Cedula = &datos.Cedula
 	}
@@ -297,7 +308,6 @@ func Registrar(datos models.DatosRegistro) (map[string]interface{}, error) {
 	}
 
 	// 4. Guardar la clave cifrada y el rol
-
 	if err := guardarContrasena(nuevoUsuario.Id, datos.Contrasena); err != nil {
 		return nil, helpers.NuevoError(http.StatusBadRequest, "El usuario se creo pero no se pudo guardar la contrasena")
 	}
@@ -316,7 +326,6 @@ func Registrar(datos models.DatosRegistro) (map[string]interface{}, error) {
 	}, nil
 }
 
-
 // IniciarSesion: paso 1 del login. Valida correo y clave y crea el codigo.
 // Bloquea la cuenta 15 minutos tras 5 intentos fallidos.
 func IniciarSesion(datos models.DatosLogin) (map[string]interface{}, error) {
@@ -324,7 +333,6 @@ func IniciarSesion(datos models.DatosLogin) (map[string]interface{}, error) {
 	errorLogin := helpers.NuevoError(http.StatusUnauthorized, "Correo o contrasena incorrectos")
 
 	// 1. Buscar el usuario (mismo mensaje si no existe o si la clave esta mal)
-
 	usuario, existe, err := buscarUsuarioPorEmail(strings.ToLower(strings.TrimSpace(datos.Email)))
 
 	if err != nil {
@@ -339,8 +347,7 @@ func IniciarSesion(datos models.DatosLogin) (map[string]interface{}, error) {
 		return nil, helpers.NuevoError(http.StatusForbidden, "La cuenta esta inactiva")
 	}
 
-	// 2. Buscar su credencial y revisar si esta bloqueada 
-
+	// 2. Buscar su credencial y revisar si esta bloqueada
 	credencial, tiene, err := buscarCredencial(usuario.Id)
 
 	if err != nil {
@@ -373,7 +380,6 @@ func IniciarSesion(datos models.DatosLogin) (map[string]interface{}, error) {
 	helpers.Actualizar(fmt.Sprintf("%s/credencial/%d", helpers.UrlCrudAuth, credencial.Id), credencial)
 
 	// 4. Guardar el intento en la auditoria
-
 	estadoEvento := "exitoso"
 	if !claveCorrecta {
 		estadoEvento = "fallido"
@@ -394,7 +400,6 @@ func IniciarSesion(datos models.DatosLogin) (map[string]interface{}, error) {
 	}
 
 	// 5. Crear el codigo de 6 numeros (vence en 10 minutos)
-
 	if err := crearCodigo(usuario.Id, usuario.Email, "login_2fa", 10); err != nil {
 		return nil, err
 	}
@@ -406,8 +411,7 @@ func IniciarSesion(datos models.DatosLogin) (map[string]interface{}, error) {
 	}, nil
 }
 
-// VerificarCodigo: paso 2 del login. Valida el codigo de 6 numeros
-
+// VerificarCodigo: paso 2 del login. Valida el codigo de 6 numeros.
 func VerificarCodigo(datos models.DatosCodigo) (map[string]interface{}, error) {
 
 	if err := validarCodigo(datos.IdUsuario, "login_2fa", datos.Codigo); err != nil {
@@ -460,7 +464,6 @@ func IniciarSesionSocial(datos models.DatosLoginSocial) (map[string]interface{},
 	}
 
 	// 3. Si no existe, buscar el usuario por correo; si tampoco existe, crearlo
-
 	usuario, existe, err := buscarUsuarioPorEmail(datos.Email)
 
 	if err != nil {
@@ -479,7 +482,6 @@ func IniciarSesionSocial(datos models.DatosLoginSocial) (map[string]interface{},
 	}
 
 	// 4. Vincular la cuenta social al usuario
-
 	cuenta := models.CuentaSocial{
 		IdUsuario:      &models.Ref{Id: usuario.Id},
 		Proveedor:      datos.Proveedor,
@@ -504,7 +506,6 @@ func respuestaSocial(idUsuario int, datos models.DatosLoginSocial) map[string]in
 
 // PedirCodigoRecuperacion: crea un codigo para cambiar la clave olvidada.
 // Siempre responde lo mismo, para no revelar que correos existen.
-
 func PedirCodigoRecuperacion(email string) (map[string]interface{}, error) {
 
 	respuesta := map[string]interface{}{"mensaje": "Si el correo esta registrado, te enviamos un codigo"}
@@ -524,8 +525,7 @@ func PedirCodigoRecuperacion(email string) (map[string]interface{}, error) {
 	return respuesta, nil
 }
 
-// RestablecerContrasena: valida el codigo y guarda la clave nueva
-
+// RestablecerContrasena: valida el codigo y guarda la clave nueva.
 func RestablecerContrasena(datos models.DatosContrasena) (map[string]interface{}, error) {
 
 	if len(datos.ContrasenaNueva) < 8 {
@@ -553,8 +553,7 @@ func RestablecerContrasena(datos models.DatosContrasena) (map[string]interface{}
 	return map[string]interface{}{"mensaje": "Contrasena actualizada"}, nil
 }
 
-// CambiarContrasena: desde el perfil, pidiendo la clave actual
-
+// CambiarContrasena: desde el perfil, pidiendo la clave actual.
 func CambiarContrasena(idUsuario int, datos models.DatosContrasena) (map[string]interface{}, error) {
 
 	if len(datos.ContrasenaNueva) < 8 {
@@ -580,4 +579,4 @@ func CambiarContrasena(idUsuario int, datos models.DatosContrasena) (map[string]
 	}
 
 	return map[string]interface{}{"mensaje": "Contrasena actualizada"}, nil
-
+}

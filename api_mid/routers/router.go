@@ -14,17 +14,9 @@ import (
 
 func init() {
 
+
 	// General (para probar que los CRUD esten encendidos)
 	beego.Router("/v1/estado", &controllers.GeneralController{}, "get:Estado")
-
-	// Usuarios (crud_auth)
-	beego.Router("/v1/registro", &controllers.AuthController{}, "post:PostRegistro")
-	beego.Router("/v1/login", &controllers.AuthController{}, "post:PostLogin")
-	beego.Router("/v1/login/verificar", &controllers.AuthController{}, "post:PostVerificarCodigo")
-	beego.Router("/v1/login/social", &controllers.AuthController{}, "post:PostLoginSocial")
-	beego.Router("/v1/recuperar-contrasena", &controllers.AuthController{}, "post:PostRecuperarContrasena;put:PutRestablecerContrasena")
-	beego.Router("/v1/perfil/:id", &controllers.AuthController{}, "get:GetPerfil")
-	beego.Router("/v1/perfil/:id/contrasena", &controllers.AuthController{}, "put:PutCambiarContrasena")
 
 	// Educacion (crud_educacion)
 	beego.Router("/v1/progreso-educativo/:id", &controllers.EducacionController{}, "get:GetProgresoEducativo")
