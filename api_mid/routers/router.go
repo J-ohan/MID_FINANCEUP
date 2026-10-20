@@ -58,6 +58,7 @@ func init() {
 	beego.Router("/v1/metas/usuario/:id", &finanzas.FinanzasController{}, "get:GetMetas")
 	beego.Router("/v1/metas/:id/abono", &finanzas.FinanzasController{}, "put:PutAbonoMeta")
 	beego.Router("/v1/inversiones/usuario/:id", &finanzas.FinanzasController{}, "get:GetInversiones")
+	beego.Router("/v1/inversiones/usuario/:id/exportar", &finanzas.FinanzasController{}, "get:GetExportarInversiones")
 	beego.Router("/v1/admin/finanzas", &finanzas.FinanzasController{}, "get:GetAdminFinanzas")
 	beego.Router("/v1/admin/libro-mayor", &finanzas.FinanzasController{}, "get:GetAdminLibroMayor")
 }

@@ -8,7 +8,6 @@ package finanzas
 
 import (
 	"fmt"
-	"net/http"
 	"strings"
 
 	"api_mid_financeup/helpers"
@@ -79,18 +78,21 @@ func nombresUsuarios() (map[int]string, error) {
 }
 
 // usuarioExiste pregunta a crud_auth si el usuario existe.
-// Si no existe devuelve un error 404; si no llego el id, un error 400.
+// Es lo primero que hacen las funciones que reciben un id de usuario:
+//   - id en 0 o negativo  -> error 400
+//   - el usuario no existe -> error 404
+//   - crud_auth apagado    -> error 502
 func usuarioExiste(idUsuario int) error {
 
 	if idUsuario <= 0 {
-		return helpers.NuevoError(http.StatusBadRequest, "El id del usuario es obligatorio")
+		return errIdUsuario
 	}
 
 	var usuario struct {
 		Id int `json:"Id"`
 	}
 
-	return helpers.ConsultarUno(fmt.Sprintf("%s/usuario/%d", helpers.UrlCrudAuth, idUsuario), &usuario, "El usuario no existe")
+	return helpers.ConsultarUno(fmt.Sprintf("%s/usuario/%d", helpers.UrlCrudAuth, idUsuario), &usuario, mensajeUsuarioNoExiste)
 }
 
 // tipoMovimiento convierte el campo EsIngreso (true/false) en la palabra

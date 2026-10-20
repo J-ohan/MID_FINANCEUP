@@ -57,3 +57,26 @@ func (c *FinanzasController) GetExportarMovimientos() {
 	// 3. Responder los datos
 	helpers.Responder(&c.Controller, http.StatusOK, resultado)
 }
+
+// GetExportarInversiones atiende GET /v1/inversiones/usuario/:id/exportar
+// (boton "Exportar" de Inversiones). Devuelve el resumen, el reparto por
+// riesgo, el detalle y el crecimiento; la pagina arma el archivo .xlsx.
+func (c *FinanzasController) GetExportarInversiones() {
+
+	// 1. Leer el id del usuario
+	id, err := helpers.LeerId(&c.Controller)
+	if err != nil {
+		helpers.ResponderError(&c.Controller, err)
+		return
+	}
+
+	// 2. Pedir los datos del Excel de inversiones
+	resultado, err := servicio.ExportarInversiones(id)
+	if err != nil {
+		helpers.ResponderError(&c.Controller, err)
+		return
+	}
+
+	// 3. Responder los datos
+	helpers.Responder(&c.Controller, http.StatusOK, resultado)
+}

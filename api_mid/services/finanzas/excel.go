@@ -2,8 +2,10 @@ package finanzas
 
 import (
 	"fmt"
-	"net/http"
+	"math"
+	"sort"
 	"strings"
+	"time"
 
 	"api_mid_financeup/helpers"
 	"api_mid_financeup/models"
@@ -35,12 +37,16 @@ func ImportarMovimientos(datos models.DatosImportar) (map[string]interface{}, er
 	}
 
 	if modo != "validar" && modo != "confirmar" {
-		return nil, helpers.NuevoError(http.StatusBadRequest, "El modo debe ser validar o confirmar")
+		return nil, errModoImportar
 	}
 
-	// 2. Debe llegar al menos una fila y el usuario debe existir
+	// 2. Debe llegar entre 1 y 1000 filas, y el usuario debe existir
 	if len(datos.Movimientos) == 0 {
-		return nil, helpers.NuevoError(http.StatusBadRequest, "No llego ningun movimiento")
+		return nil, errSinMovimientos
+	}
+
+	if len(datos.Movimientos) > LimiteFilasExcel {
+		return nil, errDemasiadasFilas
 	}
 
 	if err := usuarioExiste(datos.IdUsuario); err != nil {
@@ -131,7 +137,7 @@ func guardarMovimientos(movimientos []models.Movimiento) (int, error) {
 				helpers.Actualizar(fmt.Sprintf("%s/movimiento_ingreso_egreso/%d", helpers.UrlCrudFinanzas, anterior.Id), anterior)
 			}
 
-			return 0, helpers.NuevoError(http.StatusBadGateway, "No se pudo guardar \""+movimiento.Nombre+"\", no se importo ninguna fila")
+			return 0, errNoSeImporto(movimiento.Nombre)
 		}
 
 		movimiento.Id = creado.Id
@@ -206,4 +212,104 @@ func ExportarMovimientos(idUsuario int, filtros models.FiltrosMovimientos) (map[
 		"balance_mes":          balanceMes,
 		"ahorro_mensual":       balanceMes - proyeccionAhorro,
 	}, nil
+}
+
+// ExportarInversiones arma los datos del Excel "Mis inversiones":
+//   - resumen: total invertido, rendimiento, valor actual, rentabilidad
+//     y cuantas inversiones hay
+//   - por_riesgo: cuanto dinero hay en Bajo, Medio y Alto, y que % del total es
+//   - inversiones: el detalle de cada una con su rentabilidad, su valor
+//     actual y que parte de la cartera es (de la mas grande a la mas pequena)
+//   - crecimiento: los puntos del historial (los de la grafica)
+//   - alerta: si la mitad o mas del dinero esta en riesgo Alto
+//     (la misma regla que muestra la pagina)
+//
+// Usa cargarInversiones, asi el Excel muestra lo mismo que la pantalla.
+func ExportarInversiones(idUsuario int) (map[string]interface{}, error) {
+
+	datos, err := cargarInversiones(idUsuario)
+
+	if err != nil {
+		return nil, err
+	}
+
+	balance, rendimiento := datos.totales()
+
+	// 1. Ordenar de la inversion mas grande a la mas pequena
+	ordenadas := append([]models.Inversion{}, datos.inversiones...)
+	sort.SliceStable(ordenadas, func(i, j int) bool { return ordenadas[i].Monto > ordenadas[j].Monto })
+
+	// 2. Detalle de cada inversion y cuanto hay en cada riesgo
+	detalle := []map[string]interface{}{}
+	montoPorRiesgo := map[string]float64{}
+	cantidadPorRiesgo := map[string]int{}
+
+	for _, inversion := range ordenadas {
+
+		riesgo := nombreRiesgo(inversion, datos.riesgoPorId)
+		if riesgo == "" {
+			riesgo = "Sin definir"
+		}
+
+		montoPorRiesgo[riesgo] += inversion.Monto
+		cantidadPorRiesgo[riesgo]++
+
+		detalle = append(detalle, map[string]interface{}{
+			"nombre":        inversion.Nombre,
+			"monto":         inversion.Monto,
+			"rendimiento":   inversion.Rendimiento,
+			"rentabilidad":  porcentajeDecimal(inversion.Rendimiento, inversion.Monto), // % que gano sobre lo invertido
+			"valor_actual":  inversion.Monto + inversion.Rendimiento,
+			"participacion": porcentajeDecimal(inversion.Monto, balance), // % de toda la cartera
+			"riesgo":        riesgo,
+			"duracion":      inversion.Duracion,
+		})
+	}
+
+	// 3. Reparto por riesgo: siempre Bajo, Medio y Alto (aunque esten en 0)
+	porRiesgo := []map[string]interface{}{}
+
+	for _, riesgo := range []string{"Bajo", "Medio", "Alto", "Sin definir"} {
+
+		if riesgo == "Sin definir" && cantidadPorRiesgo[riesgo] == 0 {
+			continue
+		}
+
+		porRiesgo = append(porRiesgo, map[string]interface{}{
+			"riesgo":     riesgo,
+			"monto":      montoPorRiesgo[riesgo],
+			"porcentaje": porcentajeDecimal(montoPorRiesgo[riesgo], balance),
+			"cantidad":   cantidadPorRiesgo[riesgo],
+		})
+	}
+
+	// 4. Alerta si la mitad o mas del dinero esta en riesgo Alto
+	alerta := ""
+
+	if balance > 0 {
+		if enRiesgoAlto := math.Round(montoPorRiesgo["Alto"] / balance * 100); enRiesgoAlto >= 50 {
+			alerta = fmt.Sprintf("El %.0f%% de tu dinero invertido esta en riesgo alto. Considera diversificar en opciones de menor riesgo.", enRiesgoAlto)
+		}
+	}
+
+	resultado := map[string]interface{}{
+		"fecha_exportacion": time.Now().Format("2006-01-02 15:04"),
+		"resumen": map[string]interface{}{
+			"total_invertido":    balance,
+			"rendimiento_total":  rendimiento,
+			"valor_actual":       balance + rendimiento,
+			"rentabilidad":       porcentajeDecimal(rendimiento, balance),
+			"numero_inversiones": len(datos.inversiones),
+		},
+		"por_riesgo":  porRiesgo,
+		"inversiones": detalle,
+		"crecimiento": datos.grafica(),
+		"alerta":      alerta,
+	}
+
+	if len(datos.avisos) > 0 {
+		resultado["avisos"] = datos.avisos
+	}
+
+	return resultado, nil
 }
