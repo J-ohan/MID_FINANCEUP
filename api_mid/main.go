@@ -14,6 +14,7 @@ func main() {
 	// (en la carpeta MID_FINANCEUP, no se sube a git).
 	godotenv.Load("../.env")
 	helpers.CargarUrls()
+	helpers.CargarSeguridad() // lee JWT_SECRETO para firmar los tokens de sesion
 
 	if beego.BConfig.RunMode == "dev" {
 		beego.BConfig.WebConfig.DirectoryIndex = true
@@ -26,6 +27,10 @@ func main() {
 		AllowMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders: []string{"Origin", "Content-Type", "Accept", "Authorization"},
 	}))
+
+	// Revisa el token de sesion antes de cada ruta (helpers/filtro.go).
+	// Va despues del CORS para que la pagina pueda leer los errores 401/403.
+	beego.InsertFilter("*", beego.BeforeRouter, helpers.FiltroAutenticacion)
 
 	beego.Run()
 }
