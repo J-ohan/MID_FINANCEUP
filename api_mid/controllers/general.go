@@ -18,3 +18,21 @@ type GeneralController struct {
 func (c *GeneralController) Estado() {
 	helpers.Responder(&c.Controller, http.StatusOK, services.EstadoCruds())
 }
+
+// GET /v1/dashboard/:id
+func (c *GeneralController) GetDashboard() {
+
+	id, err := helpers.LeerId(&c.Controller)
+	if err != nil {
+		helpers.ResponderError(&c.Controller, err)
+		return
+	}
+
+	resultado, err := services.Dashboard(id)
+	if err != nil {
+		helpers.ResponderError(&c.Controller, err)
+		return
+	}
+
+	helpers.Responder(&c.Controller, http.StatusOK, resultado)
+}
