@@ -198,7 +198,7 @@ func TestErroresAbonarMeta(t *testing.T) {
 	}
 
 	for _, caso := range casos {
-		if _, err := AbonarMeta(caso.idMeta, caso.valor); codigoDe(err) != caso.esperado {
+		if _, err := AbonarMeta(caso.idMeta, caso.valor, 0); codigoDe(err) != caso.esperado {
 			t.Errorf("%s: esperaba %d, llego %v", caso.nombre, caso.esperado, err)
 		}
 	}
@@ -209,7 +209,7 @@ func TestErroresAbonarMeta(t *testing.T) {
 	}
 
 	// Un abono correcto suma
-	resultado, err := AbonarMeta(10, 50)
+	resultado, err := AbonarMeta(10, 50, 0)
 
 	if err != nil || resultado["actual"] != 150.0 {
 		t.Errorf("el abono correcto debia dejar 150, llego %v %v", resultado, err)

@@ -112,8 +112,9 @@ type DatosLogin struct {
 }
 
 type DatosCodigo struct {
-	IdUsuario int    `json:"id_usuario"`
-	Codigo    string `json:"codigo"`
+	IdUsuario         int    `json:"id_usuario"`
+	Codigo            string `json:"codigo"`
+	TokenVerificacion string `json:"token_verificacion"`
 }
 
 // DatosLoginSocial: la pagina solo manda el proveedor y el token que le
@@ -137,5 +138,6 @@ type DatosContrasena struct {
 
 // DatosReenviar: POST /v1/login/reenviar (pedir otro codigo del login).
 type DatosReenviar struct {
-	IdUsuario int `json:"id_usuario"`
+	IdUsuario         int    `json:"id_usuario"`
+	TokenVerificacion string `json:"token_verificacion"`
 }

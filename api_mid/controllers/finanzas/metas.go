@@ -50,7 +50,7 @@ func (c *FinanzasController) PutAbonoMeta() {
 	}
 
 	// 2. El service suma el abono a la meta
-	resultado, err := servicio.AbonarMeta(id, datos.Valor)
+	resultado, err := servicio.AbonarMeta(id, datos.Valor, helpers.DuenoQuePide(&c.Controller))
 	if err != nil {
 		helpers.ResponderError(&c.Controller, err)
 		return
