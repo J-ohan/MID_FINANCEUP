@@ -99,9 +99,40 @@ func (c *AuthController) PostVerificarCodigo() {
 	helpers.Responder(&c.Controller, http.StatusOK, resultado)
 }
 
-// Post v1/login/social
+// POST /v1/login/reenviar  (boton "Reenviar codigo"; body: {"id_usuario": 1})
+func (c *AuthController) PostReenviarCodigo() {
 
+	var datos models.DatosReenviar
+	if err := helpers.LeerBody(&c.Controller, &datos); err != nil {
+		helpers.ResponderError(&c.Controller, err)
+		return
+	}
 
+	resultado, err := services.ReenviarCodigo(datos)
+	if err != nil {
+		helpers.ResponderError(&c.Controller, err)
+		return
+	}
+
+	helpers.Responder(&c.Controller, http.StatusOK, resultado)
+}
+
+// POST /v1/logout  (cierra la sesion del token que llega en Authorization)
+func (c *AuthController) PostLogout() {
+
+	// El filtro ya reviso el token; aqui solo se toman sus datos
+	token, ok := helpers.TokenDeLaSesion(&c.Controller)
+	if !ok {
+		helpers.ResponderError(&c.Controller, helpers.NuevoError(http.StatusUnauthorized, "No hay una sesion activa"))
+		return
+	}
+
+	resultado := services.CerrarSesion(token, c.Ctx.Input.IP(), c.Ctx.Input.UserAgent())
+
+	helpers.Responder(&c.Controller, http.StatusOK, resultado)
+}
+
+// POST /v1/login/social  (body: {"proveedor": "google", "id_token": "..."})
 func (c *AuthController) PostLoginSocial() {
 
 	var datos models.DatosLoginSocial
@@ -109,6 +140,10 @@ func (c *AuthController) PostLoginSocial() {
 		helpers.ResponderError(&c.Controller, err)
 		return
 	}
+
+	// Para la auditoria
+	datos.Ip = c.Ctx.Input.IP()
+	datos.Navegador = c.Ctx.Input.UserAgent()
 
 	resultado, err := services.IniciarSesionSocial(datos)
 	if err != nil {
@@ -149,6 +184,10 @@ func (c *AuthController) PutRestablecerContrasena() {
 		return
 	}
 
+	// Para la auditoria
+	datos.Ip = c.Ctx.Input.IP()
+	datos.Navegador = c.Ctx.Input.UserAgent()
+
 	resultado, err := services.RestablecerContrasena(datos)
 	if err != nil {
 		helpers.ResponderError(&c.Controller, err)
@@ -172,6 +211,10 @@ func (c *AuthController) PutCambiarContrasena() {
 		helpers.ResponderError(&c.Controller, err)
 		return
 	}
+
+	// Para la auditoria
+	datos.Ip = c.Ctx.Input.IP()
+	datos.Navegador = c.Ctx.Input.UserAgent()
 
 	resultado, err := services.CambiarContrasena(id, datos)
 	if err != nil {
