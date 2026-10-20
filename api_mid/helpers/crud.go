@@ -107,3 +107,21 @@ func Actualizar(url string, datos interface{}) error {
 
 	return nil
 }
+
+// Borrar elimina un registro de verdad (DELETE /v1/tabla/5).
+// Solo se usa para deshacer algo que quedo a medias (por ejemplo,
+// un registro de usuario que fallo al guardar la contrasena).
+func Borrar(url string) error {
+
+	peticion, _ := http.NewRequest(http.MethodDelete, url, nil)
+
+	response, err := http.DefaultClient.Do(peticion)
+
+	if err != nil {
+		return NuevoError(http.StatusBadGateway, "No fue posible comunicarse con un CRUD: "+url)
+	}
+
+	response.Body.Close()
+
+	return nil
+}
