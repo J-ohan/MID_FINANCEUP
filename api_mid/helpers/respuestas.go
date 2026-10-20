@@ -16,13 +16,30 @@ import (
 // LeerId lee el :id de la URL y revisa que sea un numero.
 func LeerId(c *beego.Controller) (int, error) {
 
-	id, err := strconv.Atoi(c.Ctx.Input.Param(":id"))
+	texto := c.Ctx.Input.Param(":id")
+	id, err := strconv.Atoi(texto)
 
-	if err != nil {
+	if err != nil || !SoloNumeros(texto) {
 		return 0, NuevoError(http.StatusBadRequest, "El ID debe ser numerico")
 	}
 
 	return id, nil
+}
+
+// SoloNumeros dice si el texto son solo digitos (sin signo ni espacios).
+func SoloNumeros(texto string) bool {
+
+	if texto == "" {
+		return false
+	}
+
+	for _, letra := range texto {
+		if letra < '0' || letra > '9' {
+			return false
+		}
+	}
+
+	return true
 }
 
 // LeerBody convierte el JSON que manda la pagina a una estructura.

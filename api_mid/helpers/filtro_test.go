@@ -39,6 +39,7 @@ func TestFiltroPermisos(t *testing.T) {
 
 	usuario1, _ := CrearToken(1, "user")
 	admin, _ := CrearToken(9, "admin")
+	verificacion, _ := CrearTokenVerificacion(1)
 
 	casos := []struct {
 		nombre              string
@@ -70,6 +71,14 @@ func TestFiltroPermisos(t *testing.T) {
 		{"progreso de otro por ?usuario=", "GET", "/v1/cursos/3?usuario=2", usuario1, ``, http.StatusForbidden},
 		{"una meta (el :id no es de usuario)", "PUT", "/v1/metas/55/abono", usuario1, `{"valor":5}`, 0},
 		{"admin siendo usuario", "GET", "/v1/admin/finanzas", usuario1, ``, http.StatusForbidden},
+
+		// Intentos de saltarse el filtro
+		{"id_usuario en mayusculas", "POST", "/v1/solicitud-credito", usuario1, `{"ID_USUARIO":2}`, http.StatusForbidden},
+		{"id_usuario repetido", "POST", "/v1/solicitud-credito", usuario1, `{"id_usuario":1,"Id_Usuario":2}`, http.StatusForbidden},
+		{"id_usuario como texto", "POST", "/v1/solicitud-credito", usuario1, `{"id_usuario":"2"}`, http.StatusForbidden},
+		{"id con signo en la URL", "GET", "/v1/perfil/+2", usuario1, ``, http.StatusForbidden},
+		{"id con ceros a la izquierda", "GET", "/v1/perfil/01", usuario1, ``, 0},
+		{"token del paso 2 del login", "GET", "/v1/perfil/1", verificacion, ``, http.StatusUnauthorized},
 
 		// El admin puede ver todo
 		{"admin ve perfil de otro", "GET", "/v1/perfil/2", admin, ``, 0},

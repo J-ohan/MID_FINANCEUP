@@ -72,8 +72,36 @@ func CargarSeguridad() {
 	})
 }
 
+// RolVerificacion es el rol del token temporal que se entrega despues
+// de correo y clave. Solo sirve para verificar o reenviar el codigo.
+const RolVerificacion = "verificacion_2fa"
+
+// DuracionTokenVerificacion: lo que dura ese token temporal.
+var DuracionTokenVerificacion = 10 * time.Minute
+
 // CrearToken arma y firma un token para el usuario.
 func CrearToken(idUsuario int, rol string) (string, error) {
+	return crearTokenCon(idUsuario, rol, DuracionToken)
+}
+
+// CrearTokenVerificacion arma el token temporal del paso 2 del login.
+func CrearTokenVerificacion(idUsuario int) (string, error) {
+	return crearTokenCon(idUsuario, RolVerificacion, DuracionTokenVerificacion)
+}
+
+// LeerTokenVerificacion revisa el token temporal y devuelve el id del usuario.
+func LeerTokenVerificacion(token string) (int, error) {
+
+	datos, err := LeerToken(token)
+
+	if err != nil || datos.Rol != RolVerificacion {
+		return 0, NuevoError(http.StatusUnauthorized, "Inicia sesion de nuevo para recibir un codigo")
+	}
+
+	return datos.IdUsuario, nil
+}
+
+func crearTokenCon(idUsuario int, rol string, duracion time.Duration) (string, error) {
 
 	CargarSeguridad()
 
@@ -86,7 +114,7 @@ func CrearToken(idUsuario int, rol string) (string, error) {
 		IdUsuario: idUsuario,
 		Rol:       rol,
 		Emitido:   ahora.Unix(),
-		Expira:    ahora.Add(DuracionToken).Unix(),
+		Expira:    ahora.Add(duracion).Unix(),
 		Id:        hex.EncodeToString(idToken),
 	}
 
