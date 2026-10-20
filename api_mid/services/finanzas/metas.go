@@ -3,7 +3,6 @@ package finanzas
 import (
 	"fmt"
 	"math"
-	"net/http"
 
 	"api_mid_financeup/helpers"
 	"api_mid_financeup/models"
@@ -43,6 +42,11 @@ func armarMeta(meta models.Meta) map[string]interface{} {
 // MetasUsuario devuelve las metas del usuario con su porcentaje, cuantas
 // estan cumplidas y los totales (todo lo ahorrado y todo lo que quiere ahorrar).
 func MetasUsuario(idUsuario int) (map[string]interface{}, error) {
+
+	// 0. El usuario debe existir
+	if err := usuarioExiste(idUsuario); err != nil {
+		return nil, err
+	}
 
 	// 1. Pedir al CRUD las metas activas del usuario
 	var metas []models.Meta
@@ -86,17 +90,26 @@ func MetasUsuario(idUsuario int) (map[string]interface{}, error) {
 // cambia solo MontoActual y se manda todo de vuelta.
 func AbonarMeta(idMeta int, valor float64) (map[string]interface{}, error) {
 
-	// 1. El abono debe ser mayor a 0
-	if valor <= 0 {
-		return nil, helpers.NuevoError(http.StatusBadRequest, "El valor del abono debe ser mayor a 0")
+	// 1. El id de la meta y el abono deben ser mayores a 0
+	if idMeta <= 0 {
+		return nil, errIdMeta
 	}
 
-	// 2. Traer la meta completa
+	if valor <= 0 {
+		return nil, errValorAbono
+	}
+
+	// 2. Traer la meta completa (404 si no existe)
 	var meta map[string]interface{}
 	direccion := fmt.Sprintf("%s/meta/%d", helpers.UrlCrudFinanzas, idMeta)
 
-	if err := helpers.ConsultarUno(direccion, &meta, "La meta no existe"); err != nil {
+	if err := helpers.ConsultarUno(direccion, &meta, mensajeMetaNoExiste); err != nil {
 		return nil, err
+	}
+
+	// Una meta borrada (Activo = false) no recibe abonos
+	if activa, _ := meta["Activo"].(bool); !activa {
+		return nil, errMetaBorrada
 	}
 
 	// 3. Sumar el abono a lo que ya llevaba
