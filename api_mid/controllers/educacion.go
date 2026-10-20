@@ -2,8 +2,9 @@ package controllers
 
 import (
 	"net/http"
-	"strconv"
 
+	"api_mid_financeup/helpers"
+	"api_mid_financeup/models"
 	"api_mid_financeup/services"
 
 	beego "github.com/beego/beego/v2/server/web"
@@ -14,30 +15,136 @@ type EducacionController struct {
 	beego.Controller
 }
 
-// GET /v1/progreso-educativo/:id
-func (c *EducacionController) GetProgresoEducativo() {
+// GET /v1/cursos
+func (c *EducacionController) GetCursos() {
 
-	// 1. Leer el id de la URL
-	id, err := strconv.Atoi(c.Ctx.Input.Param(":id"))
-
+	resultado, err := services.Catalogo()
 	if err != nil {
-		c.Ctx.ResponseWriter.WriteHeader(http.StatusBadRequest)
-		c.Data["json"] = map[string]interface{}{"error": "El ID debe ser numerico"}
-		c.ServeJSON()
+		helpers.ResponderError(&c.Controller, err)
 		return
 	}
 
-	// 2. Llamar al service
-	resultado, codigo, err := services.ProgresoEducativo(id)
+	helpers.Responder(&c.Controller, http.StatusOK, resultado)
+}
 
-	// 3. Responder
-	c.Ctx.ResponseWriter.WriteHeader(codigo)
+// GET /v1/cursos/:id?usuario=5
+func (c *EducacionController) GetCurso() {
 
+	id, err := helpers.LeerId(&c.Controller)
 	if err != nil {
-		c.Data["json"] = map[string]interface{}{"error": err.Error()}
-	} else {
-		c.Data["json"] = resultado
+		helpers.ResponderError(&c.Controller, err)
+		return
 	}
 
-	c.ServeJSON()
+	idUsuario, _ := c.GetInt("usuario") // opcional
+
+	resultado, err := services.DetalleCurso(id, idUsuario)
+	if err != nil {
+		helpers.ResponderError(&c.Controller, err)
+		return
+	}
+
+	helpers.Responder(&c.Controller, http.StatusOK, resultado)
+}
+
+// GET /v1/progreso-educativo/:id
+func (c *EducacionController) GetProgresoEducativo() {
+
+	id, err := helpers.LeerId(&c.Controller)
+	if err != nil {
+		helpers.ResponderError(&c.Controller, err)
+		return
+	}
+
+	resultado, err := services.ProgresoEducativo(id)
+	if err != nil {
+		helpers.ResponderError(&c.Controller, err)
+		return
+	}
+
+	helpers.Responder(&c.Controller, http.StatusOK, resultado)
+}
+
+// GET /v1/clase/:id
+func (c *EducacionController) GetClase() {
+
+	id, err := helpers.LeerId(&c.Controller)
+	if err != nil {
+		helpers.ResponderError(&c.Controller, err)
+		return
+	}
+
+	resultado, err := services.Clase(id)
+	if err != nil {
+		helpers.ResponderError(&c.Controller, err)
+		return
+	}
+
+	helpers.Responder(&c.Controller, http.StatusOK, resultado)
+}
+
+// POST /v1/clase/:id/completar
+func (c *EducacionController) PostCompletarLeccion() {
+
+	id, err := helpers.LeerId(&c.Controller)
+	if err != nil {
+		helpers.ResponderError(&c.Controller, err)
+		return
+	}
+
+	var datos models.DatosUsuarioCurso
+	if err := helpers.LeerBody(&c.Controller, &datos); err != nil {
+		helpers.ResponderError(&c.Controller, err)
+		return
+	}
+
+	resultado, err := services.CompletarLeccion(id, datos.IdUsuario)
+	if err != nil {
+		helpers.ResponderError(&c.Controller, err)
+		return
+	}
+
+	helpers.Responder(&c.Controller, http.StatusOK, resultado)
+}
+
+// POST /v1/cursos/:id/reiniciar
+func (c *EducacionController) PostReiniciarCurso() {
+
+	id, err := helpers.LeerId(&c.Controller)
+	if err != nil {
+		helpers.ResponderError(&c.Controller, err)
+		return
+	}
+
+	var datos models.DatosUsuarioCurso
+	if err := helpers.LeerBody(&c.Controller, &datos); err != nil {
+		helpers.ResponderError(&c.Controller, err)
+		return
+	}
+
+	resultado, err := services.ReiniciarCurso(id, datos.IdUsuario)
+	if err != nil {
+		helpers.ResponderError(&c.Controller, err)
+		return
+	}
+
+	helpers.Responder(&c.Controller, http.StatusOK, resultado)
+}
+
+// POST /v1/certificado
+func (c *EducacionController) PostCertificado() {
+
+	var datos models.DatosUsuarioCurso
+	if err := helpers.LeerBody(&c.Controller, &datos); err != nil {
+		helpers.ResponderError(&c.Controller, err)
+		return
+	}
+
+	resultado, err := services.EmitirCertificado(datos)
+	if err != nil {
+		helpers.ResponderError(&c.Controller, err)
+		return
+	}
+
+	helpers.Responder(&c.Controller, http.StatusOK, resultado)
 }

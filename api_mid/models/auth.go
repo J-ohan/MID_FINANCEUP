@@ -2,6 +2,9 @@ package models
 
 import "time"
 
+// ------------------------------------------------------------
+// Tablas de crud_auth (como llegan del CRUD)
+// ------------------------------------------------------------
 
 type Usuario struct {
 	Id                      int       `json:"Id"`
@@ -88,8 +91,9 @@ type AuditoriaLogin struct {
 	EstadoEvento string `json:"EstadoEvento"`
 }
 
-
+// ------------------------------------------------------------
 // Datos que manda la pagina
+// ------------------------------------------------------------
 
 type DatosRegistro struct {
 	Nombre          string `json:"nombre"`
@@ -116,12 +120,14 @@ type DatosCodigo struct {
 	Codigo    string `json:"codigo"`
 }
 
+// DatosLoginSocial: la pagina solo manda el proveedor y el token que le
+// dio Google. El correo y el id se sacan del token ya verificado,
+// nunca de lo que mande la pagina.
 type DatosLoginSocial struct {
-	Proveedor string `json:"proveedor"`
-	IdExterno string `json:"id_externo"`
-	Email     string `json:"email"`
-	Nombre    string `json:"nombre"`
-	Apellido  string `json:"apellido"`
+	Proveedor string `json:"proveedor"` // por ahora solo "google"
+	IdToken   string `json:"id_token"`
+	Ip        string `json:"-"`
+	Navegador string `json:"-"`
 }
 
 type DatosContrasena struct {
@@ -129,4 +135,11 @@ type DatosContrasena struct {
 	Codigo           string `json:"codigo"`
 	ContrasenaActual string `json:"contrasena_actual"`
 	ContrasenaNueva  string `json:"contrasena_nueva"`
+	Ip               string `json:"-"`
+	Navegador        string `json:"-"`
+}
+
+// DatosReenviar: POST /v1/login/reenviar (pedir otro codigo del login).
+type DatosReenviar struct {
+	IdUsuario int `json:"id_usuario"`
 }

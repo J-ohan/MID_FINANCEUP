@@ -15,7 +15,6 @@ type FinanzasController struct {
 	beego.Controller
 }
 
-
 // GET /v1/resumen-financiero/:id
 func (c *FinanzasController) GetResumenFinanciero() {
 
@@ -24,7 +23,6 @@ func (c *FinanzasController) GetResumenFinanciero() {
 		helpers.ResponderError(&c.Controller, err)
 		return
 	}
-
 
 	resultado, err := services.ResumenFinanciero(id)
 	if err != nil {
@@ -91,7 +89,6 @@ func (c *FinanzasController) GetMetas() {
 	}
 
 	helpers.Responder(&c.Controller, http.StatusOK, resultado)
-
 }
 
 // PUT /v1/metas/:id/abono
@@ -117,8 +114,6 @@ func (c *FinanzasController) PutAbonoMeta() {
 
 	helpers.Responder(&c.Controller, http.StatusOK, resultado)
 }
-
-
 
 // GET /v1/inversiones/usuario/:id
 func (c *FinanzasController) GetInversiones() {

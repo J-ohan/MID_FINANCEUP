@@ -3,16 +3,19 @@ package controllers
 import (
 	"net/http"
 
+	"api_mid_financeup/helpers"
 	"api_mid_financeup/models"
 	"api_mid_financeup/services"
-	"api_mid_financeup/helpers"
-	
 
 	beego "github.com/beego/beego/v2/server/web"
 )
 
-
-type AuthController struct{
+// AuthController atiende las rutas de usuarios.
+// Cada funcion hace 3 cosas:
+//  1. leer lo que llega (id o JSON)
+//  2. llamar al service que hace el trabajo
+//  3. responder (el resultado o el error)
+type AuthController struct {
 	beego.Controller
 }
 
@@ -34,10 +37,7 @@ func (c *AuthController) GetPerfil() {
 	helpers.Responder(&c.Controller, http.StatusOK, perfil)
 }
 
-
-
-//Post v1/registro
-
+// POST /v1/registro
 func (c *AuthController) PostRegistro() {
 
 	var datos models.DatosRegistro
@@ -55,9 +55,7 @@ func (c *AuthController) PostRegistro() {
 	helpers.Responder(&c.Controller, http.StatusCreated, resultado)
 }
 
-
-//Post v1/login (correo y clave)
-
+// POST /v1/login  (paso 1: correo y clave)
 func (c *AuthController) PostLogin() {
 
 	var datos models.DatosLogin
@@ -79,9 +77,7 @@ func (c *AuthController) PostLogin() {
 	helpers.Responder(&c.Controller, http.StatusOK, resultado)
 }
 
-
-//Post v1/login/verificar (codigo de 6 digitos)
-
+// POST /v1/login/verificar  (paso 2: codigo de 6 numeros)
 func (c *AuthController) PostVerificarCodigo() {
 
 	var datos models.DatosCodigo
@@ -99,9 +95,40 @@ func (c *AuthController) PostVerificarCodigo() {
 	helpers.Responder(&c.Controller, http.StatusOK, resultado)
 }
 
-// Post v1/login/social
+// POST /v1/login/reenviar  (boton "Reenviar codigo"; body: {"id_usuario": 1})
+func (c *AuthController) PostReenviarCodigo() {
 
+	var datos models.DatosReenviar
+	if err := helpers.LeerBody(&c.Controller, &datos); err != nil {
+		helpers.ResponderError(&c.Controller, err)
+		return
+	}
 
+	resultado, err := services.ReenviarCodigo(datos)
+	if err != nil {
+		helpers.ResponderError(&c.Controller, err)
+		return
+	}
+
+	helpers.Responder(&c.Controller, http.StatusOK, resultado)
+}
+
+// POST /v1/logout  (cierra la sesion del token que llega en Authorization)
+func (c *AuthController) PostLogout() {
+
+	// El filtro ya reviso el token; aqui solo se toman sus datos
+	token, ok := helpers.TokenDeLaSesion(&c.Controller)
+	if !ok {
+		helpers.ResponderError(&c.Controller, helpers.NuevoError(http.StatusUnauthorized, "No hay una sesion activa"))
+		return
+	}
+
+	resultado := services.CerrarSesion(token, c.Ctx.Input.IP(), c.Ctx.Input.UserAgent())
+
+	helpers.Responder(&c.Controller, http.StatusOK, resultado)
+}
+
+// POST /v1/login/social  (body: {"proveedor": "google", "id_token": "..."})
 func (c *AuthController) PostLoginSocial() {
 
 	var datos models.DatosLoginSocial
@@ -109,6 +136,10 @@ func (c *AuthController) PostLoginSocial() {
 		helpers.ResponderError(&c.Controller, err)
 		return
 	}
+
+	// Para la auditoria
+	datos.Ip = c.Ctx.Input.IP()
+	datos.Navegador = c.Ctx.Input.UserAgent()
 
 	resultado, err := services.IniciarSesionSocial(datos)
 	if err != nil {
@@ -119,8 +150,7 @@ func (c *AuthController) PostLoginSocial() {
 	helpers.Responder(&c.Controller, http.StatusOK, resultado)
 }
 
-//Post  v1/ recuperar-contrasena
-
+// POST /v1/recuperar-contrasena  (pide el codigo)
 func (c *AuthController) PostRecuperarContrasena() {
 
 	var datos models.DatosContrasena
@@ -138,9 +168,7 @@ func (c *AuthController) PostRecuperarContrasena() {
 	helpers.Responder(&c.Controller, http.StatusOK, resultado)
 }
 
-
-//Put v1/recuperar-contrasena (codigo + clave nueva)
-
+// PUT /v1/recuperar-contrasena  (codigo + clave nueva)
 func (c *AuthController) PutRestablecerContrasena() {
 
 	var datos models.DatosContrasena
@@ -148,6 +176,10 @@ func (c *AuthController) PutRestablecerContrasena() {
 		helpers.ResponderError(&c.Controller, err)
 		return
 	}
+
+	// Para la auditoria
+	datos.Ip = c.Ctx.Input.IP()
+	datos.Navegador = c.Ctx.Input.UserAgent()
 
 	resultado, err := services.RestablecerContrasena(datos)
 	if err != nil {
@@ -158,7 +190,7 @@ func (c *AuthController) PutRestablecerContrasena() {
 	helpers.Responder(&c.Controller, http.StatusOK, resultado)
 }
 
-//Put v1/perfil/:id/contrasena
+// PUT /v1/perfil/:id/contrasena
 func (c *AuthController) PutCambiarContrasena() {
 
 	id, err := helpers.LeerId(&c.Controller)
@@ -172,6 +204,10 @@ func (c *AuthController) PutCambiarContrasena() {
 		helpers.ResponderError(&c.Controller, err)
 		return
 	}
+
+	// Para la auditoria
+	datos.Ip = c.Ctx.Input.IP()
+	datos.Navegador = c.Ctx.Input.UserAgent()
 
 	resultado, err := services.CambiarContrasena(id, datos)
 	if err != nil {
