@@ -2,7 +2,6 @@ package finanzas
 
 import (
 	"fmt"
-	"net/http"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -25,7 +24,7 @@ import (
 func validarFiltros(filtros models.FiltrosMovimientos) error {
 
 	if filtros.Tipo != "" && filtros.Tipo != "todos" && filtros.Tipo != "ingreso" && filtros.Tipo != "gasto" {
-		return helpers.NuevoError(http.StatusBadRequest, "El tipo debe ser todos, ingreso o gasto")
+		return errTipoFiltro
 	}
 
 	for _, fecha := range []string{filtros.Desde, filtros.Hasta} {
@@ -35,8 +34,13 @@ func validarFiltros(filtros models.FiltrosMovimientos) error {
 		}
 
 		if _, err := time.Parse("2006-01-02", fecha); err != nil {
-			return helpers.NuevoError(http.StatusBadRequest, "Las fechas deben tener el formato AAAA-MM-DD")
+			return errFechaFiltro
 		}
+	}
+
+	// Si llegan las dos, "desde" no puede ser despues de "hasta"
+	if filtros.Desde != "" && filtros.Hasta != "" && filtros.Desde > filtros.Hasta {
+		return errRangoFechas
 	}
 
 	return nil
@@ -47,7 +51,12 @@ func validarFiltros(filtros models.FiltrosMovimientos) error {
 // La usan el libro mayor y la exportacion a Excel.
 func movimientosFiltrados(idUsuario int, filtros models.FiltrosMovimientos) ([]models.Movimiento, map[int]models.Categoria, error) {
 
+	// Primero lo que llega en la URL, despues que el usuario exista
 	if err := validarFiltros(filtros); err != nil {
+		return nil, nil, err
+	}
+
+	if err := usuarioExiste(idUsuario); err != nil {
 		return nil, nil, err
 	}
 
@@ -66,7 +75,7 @@ func movimientosFiltrados(idUsuario int, filtros models.FiltrosMovimientos) ([]m
 		idCategoria, existe := categoriasPorNombre(categorias)[nombre]
 
 		if !existe {
-			return nil, nil, helpers.NuevoError(http.StatusBadRequest, "La categoria \""+filtros.Categoria+"\" no existe")
+			return nil, nil, errCategoriaNoExiste(filtros.Categoria)
 		}
 
 		filtros.IdCategoria = idCategoria
@@ -155,26 +164,26 @@ func nuevoMovimiento(idUsuario int, fila models.FilaExcel, categoriaPorNombre ma
 	fecha, err := time.Parse("2006-01-02", strings.TrimSpace(fila.Fecha))
 
 	if err != nil {
-		return models.Movimiento{}, helpers.NuevoError(http.StatusBadRequest, "La fecha debe ser AAAA-MM-DD")
+		return models.Movimiento{}, errFechaFila
 	}
 
 	// 2. Concepto y valor son obligatorios
 	if concepto == "" || fila.Valor <= 0 {
-		return models.Movimiento{}, helpers.NuevoError(http.StatusBadRequest, "Falta el concepto o el valor")
+		return models.Movimiento{}, errConceptoOValor
 	}
 
 	// 3. Los mismos limites que tiene la tabla en la base de datos
 	if utf8.RuneCountInString(concepto) > 120 {
-		return models.Movimiento{}, helpers.NuevoError(http.StatusBadRequest, "El concepto no puede tener mas de 120 caracteres")
+		return models.Movimiento{}, errConceptoLargo
 	}
 
 	if utf8.RuneCountInString(fila.MetodoPago) > 50 {
-		return models.Movimiento{}, helpers.NuevoError(http.StatusBadRequest, "El metodo de pago no puede tener mas de 50 caracteres")
+		return models.Movimiento{}, errMetodoPagoLargo
 	}
 
 	// 4. El tipo solo puede ser ingreso o gasto
 	if tipo != "ingreso" && tipo != "gasto" {
-		return models.Movimiento{}, helpers.NuevoError(http.StatusBadRequest, "El tipo debe ser ingreso o gasto")
+		return models.Movimiento{}, errTipoMovimiento
 	}
 
 	movimiento := models.Movimiento{

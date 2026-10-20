@@ -20,6 +20,11 @@ import (
 // 5 movimientos.
 func ResumenFinanciero(idUsuario int) (map[string]interface{}, error) {
 
+	// 0. El usuario debe existir (si no, 400 o 404 en vez de todo en cero)
+	if err := usuarioExiste(idUsuario); err != nil {
+		return nil, err
+	}
+
 	// 1. Pedir al CRUD los movimientos activos del usuario,
 	//    del mas nuevo al mas viejo, y todas las categorias.
 	var movimientos []models.Movimiento
