@@ -39,8 +39,8 @@ var catalogoPublico = regexp.MustCompile(`^/v1/(cursos|ofertas)(/\d+)?$`)
 
 // Rutas donde el :id es el id de un USUARIO (no de una meta, curso, etc.)
 var rutasConIdUsuario = []*regexp.Regexp{
-	regexp.MustCompile(`^/v1/(perfil|dashboard|resumen-financiero|progreso-educativo)/(\d+)(/|$)`),
-	regexp.MustCompile(`^/v1/(movimientos|metas|inversiones|solicitud-credito|pqr)/usuario/(\d+)(/|$)`),
+	regexp.MustCompile(`^/v1/(perfil|dashboard|resumen-financiero|progreso-educativo)/([^/]+)(/|$)`),
+	regexp.MustCompile(`^/v1/(movimientos|metas|inversiones|solicitud-credito|pqr)/usuario/([^/]+)(/|$)`),
 }
 
 // FiltroAutenticacion es el filtro que se registra en main.go.
@@ -73,6 +73,12 @@ func FiltroAutenticacion(ctx *context.Context) {
 		return
 	}
 
+	// El token temporal del login no sirve para entrar a las demas rutas
+	if datos.Rol == RolVerificacion {
+		responderFiltro(ctx, NuevoError(http.StatusUnauthorized, "La sesion no es valida. Inicia sesion de nuevo."))
+		return
+	}
+
 	// Se guarda para que los controladores sepan quien es (IdUsuarioDeLaSesion)
 	ctx.Input.SetData("token", datos)
 
@@ -102,26 +108,43 @@ func idsDeUsuarioPedidos(ctx *context.Context, ruta string) []int {
 
 	for _, patron := range rutasConIdUsuario {
 		if partes := patron.FindStringSubmatch(ruta); partes != nil {
-			id, _ := strconv.Atoi(partes[2])
-			ids = append(ids, id)
+			ids = append(ids, idDeTexto(partes[2]))
 		}
 	}
 
 	if texto := ctx.Input.Query("usuario"); texto != "" {
-		id, _ := strconv.Atoi(texto)
-		ids = append(ids, id)
+		ids = append(ids, idDeTexto(texto))
 	}
 
 	var body map[string]interface{}
 
+	// Go acepta "ID_USUARIO" o "Id_Usuario" al leer el JSON, asi que se
+	// revisan todas las formas de escribir la llave
 	if json.Unmarshal(ctx.Input.RequestBody, &body) == nil {
-		if valor, existe := body["id_usuario"]; existe {
-			id, _ := valor.(float64)
-			ids = append(ids, int(id))
+		for llave, valor := range body {
+			if strings.EqualFold(llave, "id_usuario") {
+				id, esNumero := valor.(float64)
+				if !esNumero || id != float64(int(id)) {
+					id = -1
+				}
+				ids = append(ids, int(id))
+			}
 		}
 	}
 
 	return ids
+}
+
+// idDeTexto convierte el id; si no son solo numeros devuelve -1 (no es de nadie).
+func idDeTexto(texto string) int {
+
+	id, err := strconv.Atoi(texto)
+
+	if err != nil || !SoloNumeros(texto) {
+		return -1
+	}
+
+	return id
 }
 
 func responderFiltro(ctx *context.Context, err error) {
@@ -145,6 +168,23 @@ func IdUsuarioDeLaSesion(c *beego.Controller) int {
 	}
 
 	return 0
+}
+
+// EsAdmin dice si el usuario que inicio sesion es administrador.
+func EsAdmin(c *beego.Controller) bool {
+	datos, ok := c.Ctx.Input.GetData("token").(DatosToken)
+	return ok && datos.Rol == "admin"
+}
+
+// DuenoQuePide devuelve el id del usuario de la sesion para revisar que
+// los datos sean suyos, o 0 si es admin (puede ver los de todos).
+func DuenoQuePide(c *beego.Controller) int {
+
+	if EsAdmin(c) {
+		return 0
+	}
+
+	return IdUsuarioDeLaSesion(c)
 }
 
 // TokenDeLaSesion devuelve los datos del token de la peticion (para el logout).
