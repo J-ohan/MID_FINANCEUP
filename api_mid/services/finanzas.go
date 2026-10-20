@@ -34,29 +34,6 @@ func categoriasPorId() (map[int]models.Categoria, error) {
 	return mapa, nil
 }
 
-// nombresUsuarios trae de crud_auth el nombre de cada usuario por su id.
-// Es privada para no chocar con NombresUsuarios del service de auth
-// cuando ese modulo se complete.
-func nombresUsuarios() (map[int]string, error) {
-
-	var usuarios []struct {
-		Id       int    `json:"Id"`
-		Nombre   string `json:"Nombre"`
-		Apellido string `json:"Apellido"`
-	}
-
-	if err := helpers.ConsultarLista(helpers.UrlCrudAuth+"/usuario?limit=10000", &usuarios); err != nil {
-		return nil, err
-	}
-
-	nombres := map[int]string{}
-	for _, usuario := range usuarios {
-		nombres[usuario.Id] = usuario.Nombre + " " + usuario.Apellido
-	}
-
-	return nombres, nil
-}
-
 // tipoMovimiento convierte EsIngreso en "ingreso" o "gasto".
 func tipoMovimiento(movimiento models.Movimiento) string {
 	if movimiento.EsIngreso {
@@ -446,7 +423,7 @@ func InversionesUsuario(idUsuario int) (map[string]interface{}, error) {
 func FinanzasAdmin() (map[string]interface{}, error) {
 
 	// 1. Nombres de los usuarios
-	nombres, err := nombresUsuarios()
+	nombres, err := NombresUsuarios()
 
 	if err != nil {
 		return nil, err
@@ -510,4 +487,3 @@ func FinanzasAdmin() (map[string]interface{}, error) {
 		"inversiones": listaInversiones,
 	}, nil
 }
-

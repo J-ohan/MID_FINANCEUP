@@ -1,6 +1,10 @@
 package controllers
 
 import (
+	"net/http"
+
+	"api_mid_financeup/helpers"
+	"api_mid_financeup/models"
 	"api_mid_financeup/services"
 
 	beego "github.com/beego/beego/v2/server/web"
@@ -14,17 +18,65 @@ type NegocioController struct {
 // GET /v1/ofertas
 func (c *NegocioController) GetOfertas() {
 
-	// 1. Llamar al service
-	resultado, codigo, err := services.Ofertas()
-
-	// 2. Responder
-	c.Ctx.ResponseWriter.WriteHeader(codigo)
-
+	resultado, err := services.Ofertas()
 	if err != nil {
-		c.Data["json"] = map[string]interface{}{"error": err.Error()}
-	} else {
-		c.Data["json"] = resultado
+		helpers.ResponderError(&c.Controller, err)
+		return
 	}
 
-	c.ServeJSON()
+	helpers.Responder(&c.Controller, http.StatusOK, resultado)
+}
+
+// GET /v1/ofertas/:id
+func (c *NegocioController) GetOferta() {
+
+	id, err := helpers.LeerId(&c.Controller)
+	if err != nil {
+		helpers.ResponderError(&c.Controller, err)
+		return
+	}
+
+	resultado, err := services.FichaOferta(id)
+	if err != nil {
+		helpers.ResponderError(&c.Controller, err)
+		return
+	}
+
+	helpers.Responder(&c.Controller, http.StatusOK, resultado)
+}
+
+// POST /v1/solicitud-credito
+func (c *NegocioController) PostSolicitudCredito() {
+
+	var datos models.DatosSolicitudCredito
+	if err := helpers.LeerBody(&c.Controller, &datos); err != nil {
+		helpers.ResponderError(&c.Controller, err)
+		return
+	}
+
+	resultado, err := services.RadicarSolicitud(datos)
+	if err != nil {
+		helpers.ResponderError(&c.Controller, err)
+		return
+	}
+
+	helpers.Responder(&c.Controller, http.StatusCreated, resultado)
+}
+
+// GET /v1/solicitud-credito/usuario/:id
+func (c *NegocioController) GetSolicitudesUsuario() {
+
+	id, err := helpers.LeerId(&c.Controller)
+	if err != nil {
+		helpers.ResponderError(&c.Controller, err)
+		return
+	}
+
+	resultado, err := services.SolicitudesUsuario(id)
+	if err != nil {
+		helpers.ResponderError(&c.Controller, err)
+		return
+	}
+
+	helpers.Responder(&c.Controller, http.StatusOK, resultado)
 }
