@@ -88,7 +88,8 @@ func MetasUsuario(idUsuario int) (map[string]interface{}, error) {
 // Ojo: el PUT del CRUD reemplaza el registro COMPLETO. Por eso primero
 // se trae la meta entera (en un map, para no perder ningun campo), se
 // cambia solo MontoActual y se manda todo de vuelta.
-func AbonarMeta(idMeta int, valor float64) (map[string]interface{}, error) {
+// idUsuario es el dueno que debe tener la meta (0 si lo pide un admin).
+func AbonarMeta(idMeta int, valor float64, idUsuario int) (map[string]interface{}, error) {
 
 	// 1. El id de la meta y el abono deben ser mayores a 0
 	if idMeta <= 0 {
@@ -105,6 +106,11 @@ func AbonarMeta(idMeta int, valor float64) (map[string]interface{}, error) {
 
 	if err := helpers.ConsultarUno(direccion, &meta, mensajeMetaNoExiste); err != nil {
 		return nil, err
+	}
+
+	// Una meta de otro usuario se trata como si no existiera
+	if dueno, _ := meta["IdUsuario"].(float64); idUsuario > 0 && int(dueno) != idUsuario {
+		return nil, errMetaBorrada
 	}
 
 	// Una meta borrada (Activo = false) no recibe abonos

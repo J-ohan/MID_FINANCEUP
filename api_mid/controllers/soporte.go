@@ -50,7 +50,7 @@ func (c *SoporteController) GetPqrUsuario() {
 
 func (c *SoporteController) GetPqr() {
 
-	resultado, err := services.VerPqr(c.Ctx.Input.Param(":radicado"))
+	resultado, err := services.VerPqr(c.Ctx.Input.Param(":radicado"), helpers.DuenoQuePide(&c.Controller))
 	if err != nil {
 		helpers.ResponderError(&c.Controller, err)
 		return
@@ -73,7 +73,7 @@ func (c *SoporteController) PostRespuestaPqr() {
 		return
 	}
 
-	resultado, err := services.ResponderPqr(id, datos)
+	resultado, err := services.ResponderPqr(id, datos, helpers.DuenoQuePide(&c.Controller))
 	if err != nil {
 		helpers.ResponderError(&c.Controller, err)
 		return

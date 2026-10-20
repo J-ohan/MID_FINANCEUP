@@ -76,6 +76,16 @@ func (c *AuthController) PostLogin() {
 		return
 	}
 
+	// Token temporal para el paso 2 (verificar o reenviar el codigo)
+	if idUsuario, ok := resultado["id_usuario"].(int); ok && resultado["requiere_codigo"] == true {
+		token, err := helpers.CrearTokenVerificacion(idUsuario)
+		if err != nil {
+			helpers.ResponderError(&c.Controller, err)
+			return
+		}
+		resultado["token_verificacion"] = token
+	}
+
 	helpers.Responder(&c.Controller, http.StatusOK, resultado)
 }
 
@@ -90,6 +100,14 @@ func (c *AuthController) PostVerificarCodigo() {
 		return
 	}
 
+	// El usuario sale del token del paso 1, no de lo que mande la pagina
+	idUsuario, err := helpers.LeerTokenVerificacion(datos.TokenVerificacion)
+	if err != nil {
+		helpers.ResponderError(&c.Controller, err)
+		return
+	}
+	datos.IdUsuario = idUsuario
+
 	resultado, err := services.VerificarCodigo(datos)
 	if err != nil {
 		helpers.ResponderError(&c.Controller, err)
@@ -99,7 +117,7 @@ func (c *AuthController) PostVerificarCodigo() {
 	helpers.Responder(&c.Controller, http.StatusOK, resultado)
 }
 
-// POST /v1/login/reenviar  (boton "Reenviar codigo"; body: {"id_usuario": 1})
+// POST /v1/login/reenviar  (boton "Reenviar codigo"; body: {"token_verificacion": "..."})
 func (c *AuthController) PostReenviarCodigo() {
 
 	var datos models.DatosReenviar
@@ -107,6 +125,13 @@ func (c *AuthController) PostReenviarCodigo() {
 		helpers.ResponderError(&c.Controller, err)
 		return
 	}
+
+	idUsuario, err := helpers.LeerTokenVerificacion(datos.TokenVerificacion)
+	if err != nil {
+		helpers.ResponderError(&c.Controller, err)
+		return
+	}
+	datos.IdUsuario = idUsuario
 
 	resultado, err := services.ReenviarCodigo(datos)
 	if err != nil {

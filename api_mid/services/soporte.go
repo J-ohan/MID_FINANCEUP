@@ -157,7 +157,7 @@ func PqrUsuario(idUsuario int) ([]map[string]interface{}, error) {
 	return lista, nil
 }
 
-func VerPqr(radicado string) (map[string]interface{}, error) {
+func VerPqr(radicado string, idUsuario int) (map[string]interface{}, error) {
 
 	// 1. Buscar la PQR
 	var pqrs []models.Pqr
@@ -166,7 +166,8 @@ func VerPqr(radicado string) (map[string]interface{}, error) {
 		return nil, err
 	}
 
-	if len(pqrs) == 0 {
+	// Si la PQR es de otro usuario se responde como si no existiera
+	if len(pqrs) == 0 || (idUsuario > 0 && pqrs[0].IdUsuario != idUsuario) {
 		return nil, helpers.NuevoError(http.StatusNotFound, "No existe una PQR con ese radicado")
 	}
 
@@ -220,7 +221,9 @@ func VerPqr(radicado string) (map[string]interface{}, error) {
 	}, nil
 }
 
-func ResponderPqr(idPqr int, datos models.DatosRespuestaPqr) (map[string]interface{}, error) {
+// idUsuario > 0 es el dueno de la PQR (no admin): puede escribir, pero no
+// cambiar el estado ni el progreso.
+func ResponderPqr(idPqr int, datos models.DatosRespuestaPqr, idUsuario int) (map[string]interface{}, error) {
 
 	if datos.Mensaje == "" {
 		return nil, helpers.NuevoError(http.StatusBadRequest, "El mensaje es obligatorio")
@@ -236,6 +239,16 @@ func ResponderPqr(idPqr int, datos models.DatosRespuestaPqr) (map[string]interfa
 
 	if err := helpers.ConsultarUno(direccion, &pqr, "La PQR no existe"); err != nil {
 		return nil, err
+	}
+
+	if idUsuario > 0 {
+		if pqr.IdUsuario != idUsuario {
+			return nil, helpers.NuevoError(http.StatusNotFound, "La PQR no existe")
+		}
+		datos.IdUsuario = idUsuario
+		datos.Autor = "Usuario"
+		datos.Estado = ""
+		datos.Progreso = 0
 	}
 
 	// 2. Guardar la respuesta
