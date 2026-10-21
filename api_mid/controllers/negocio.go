@@ -80,3 +80,15 @@ func (c *NegocioController) GetSolicitudesUsuario() {
 
 	helpers.Responder(&c.Controller, http.StatusOK, resultado)
 }
+
+// GET /v1/admin/solicitudes-credito
+func (c *NegocioController) GetSolicitudesAdmin() {
+
+	resultado, err := services.SolicitudesAdmin()
+	if err != nil {
+		helpers.ResponderError(&c.Controller, err)
+		return
+	}
+
+	helpers.Responder(&c.Controller, http.StatusOK, resultado)
+}

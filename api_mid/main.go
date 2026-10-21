@@ -30,7 +30,9 @@ func main() {
 
 	// Revisa el token de sesion antes de cada ruta (helpers/filtro.go).
 	// Va despues del CORS para que la pagina pueda leer los errores 401/403.
-	beego.InsertFilter("*", beego.BeforeRouter, helpers.FiltroAutenticacion)
+	// DESACTIVADO en la rama zorro: para probar educacion y negocio en
+	// Postman sin token. No pasar este cambio a develop.
+	// beego.InsertFilter("*", beego.BeforeRouter, helpers.FiltroAutenticacion)
 
 	beego.Run()
 }

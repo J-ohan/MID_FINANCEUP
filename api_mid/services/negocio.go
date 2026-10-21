@@ -285,3 +285,69 @@ func SolicitudesUsuario(idUsuario int) ([]map[string]interface{}, error) {
 
 	return lista, nil
 }
+
+// SolicitudesAdmin: todas las solicitudes de credito para el panel del
+// administrador, con el nombre del producto y de su aliado (banco).
+func SolicitudesAdmin() ([]map[string]interface{}, error) {
+
+	// 1. Solicitudes, productos y bancos
+	var solicitudes []models.Lead
+	var productos []models.ProductoCrediticio
+	var bancos []models.Banco
+
+	if err := helpers.ConsultarLista(helpers.UrlCrudNegocio+"/lead?query=activo:true&sortby=Id&order=desc&limit=10000", &solicitudes); err != nil {
+		return nil, err
+	}
+
+	if err := helpers.ConsultarLista(helpers.UrlCrudNegocio+"/producto_crediticio?limit=1000", &productos); err != nil {
+		return nil, err
+	}
+
+	if err := helpers.ConsultarLista(helpers.UrlCrudNegocio+"/banco?limit=1000", &bancos); err != nil {
+		return nil, err
+	}
+
+	// 2. Guardar productos y bancos por su id
+	productoPorId := map[int]models.ProductoCrediticio{}
+	for _, producto := range productos {
+		productoPorId[producto.Id] = producto
+	}
+
+	bancoPorId := map[int]string{}
+	for _, banco := range bancos {
+		bancoPorId[banco.Id] = banco.NombreBanco
+	}
+
+	// 3. Armar la lista como la usa la pagina
+	lista := []map[string]interface{}{}
+
+	for _, solicitud := range solicitudes {
+
+		producto := models.ProductoCrediticio{NombreProducto: solicitud.TipoCredito}
+		aliado := ""
+
+		if solicitud.IdProducto != nil {
+			if p, existe := productoPorId[solicitud.IdProducto.Id]; existe {
+				producto = p
+				if p.IdBanco != nil {
+					aliado = bancoPorId[p.IdBanco.Id]
+				}
+			}
+		}
+
+		lista = append(lista, map[string]interface{}{
+			"id_solicitud": solicitud.Id,
+			"radicado":     solicitud.Radicado,
+			"nombre":       solicitud.NombreSolicitante,
+			"correo":       solicitud.CorreoSolicitante,
+			"producto":     producto.NombreProducto,
+			"aliado":       aliado,
+			"monto":        solicitud.MontoInteres,
+			"plazo_meses":  solicitud.PlazoInteres,
+			"fecha":        solicitud.FechaGeneracion.Format("2006-01-02"),
+			"estado":       solicitud.EstadoLead,
+		})
+	}
+
+	return lista, nil
+}
