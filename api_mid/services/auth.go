@@ -1,4 +1,4 @@
-package services
+   package services
 
 import (
 	"fmt"
@@ -16,21 +16,20 @@ import (
 
 // ============================================================
 // SERVICE DE USUARIOS (crud_auth)
-// Aqui esta la logica: validar, cifrar, bloquear, crear codigos,
-// enviarlos por correo, verificar Google y entregar el token.
+// Registro, login con codigo, Google, contrasenas y sesion.
 // ============================================================
 
-// Tiempos y limites del login
+// Tiempos y limites
 const (
-	minutosCodigoLogin      = 10 // el codigo del login vence en 10 minutos
-	minutosCodigoRecuperar  = 15 // el de recuperar contrasena en 15
-	segundosEntreCodigos    = 60 // no se manda mas de un codigo por minuto
-	intentosAntesDeBloquear = 5  // a los 5 intentos fallidos se bloquea
-	minutosDeBloqueo        = 15 // durante 15 minutos
+	minutosCodigoLogin      = 10 // vigencia del codigo del login
+	minutosCodigoRecuperar  = 15 // vigencia del codigo para recuperar la clave
+	segundosEntreCodigos    = 60 // maximo un codigo por minuto
+	intentosAntesDeBloquear = 5
+	minutosDeBloqueo        = 15
 )
 
 // ------------------------------------------------------------
-// Funciones de apoyo
+// Apoyo: usuarios, roles y validaciones
 // ------------------------------------------------------------
 
 // BuscarUsuario trae un usuario por su id (lo usan otros modulos).
@@ -40,7 +39,7 @@ func BuscarUsuario(id int) (models.Usuario, error) {
 	return usuario, err
 }
 
-// buscarUsuarioPorEmail devuelve el usuario y si existe o no.
+// buscarUsuarioPorEmail devuelve el usuario y si existe.
 func buscarUsuarioPorEmail(email string) (models.Usuario, bool, error) {
 
 	var usuarios []models.Usuario
@@ -56,7 +55,7 @@ func buscarUsuarioPorEmail(email string) (models.Usuario, bool, error) {
 	return usuarios[0], true, nil
 }
 
-// NombresUsuarios devuelve un mapa id -> "Nombre Apellido" de todos los usuarios.
+// NombresUsuarios devuelve id -> "Nombre Apellido" de todos (lo usan otros modulos).
 func NombresUsuarios() (map[int]string, error) {
 
 	var usuarios []models.Usuario
@@ -73,23 +72,19 @@ func NombresUsuarios() (map[int]string, error) {
 	return nombres, nil
 }
 
-// normalizarEmail deja el correo en minuscula y sin espacios, y revisa
-// que sea un correo de verdad (nombre@dominio.algo).
+// normalizarEmail deja el correo en minuscula y revisa que sea valido.
 func normalizarEmail(email string) (string, error) {
 
 	email = strings.ToLower(strings.TrimSpace(email))
 	invalido := helpers.NuevoError(http.StatusBadRequest, "El correo no es valido")
 
+	// Comas y dos puntos se rechazan porque rompen el ?query= del CRUD
 	direccion, err := mail.ParseAddress(email)
-
-	// direccion.Address != email descarta cosas como "Ana <ana@x.com>".
-	// Las comas y los dos puntos se rechazan porque rompen el ?query= del CRUD.
 	if err != nil || direccion.Address != email || strings.ContainsAny(email, ",:") {
 		return "", invalido
 	}
 
 	dominio := email[strings.LastIndex(email, "@")+1:]
-
 	if !strings.Contains(dominio, ".") || utf8.RuneCountInString(email) > 150 {
 		return "", invalido
 	}
@@ -97,8 +92,7 @@ func normalizarEmail(email string) (string, error) {
 	return email, nil
 }
 
-// validarContrasena aplica las mismas reglas que la pagina:
-// minimo 8 caracteres, una mayuscula y un numero (y maximo 72, el limite de bcrypt).
+// validarContrasena: minimo 8, una mayuscula, un numero y maximo 72 (como la pagina).
 func validarContrasena(clave string) error {
 
 	if utf8.RuneCountInString(clave) < 8 {
@@ -109,16 +103,10 @@ func validarContrasena(clave string) error {
 		return helpers.NuevoError(http.StatusBadRequest, fmt.Sprintf("La contrasena no puede tener mas de %d caracteres", helpers.LargoMaximoClave))
 	}
 
-	tieneMayuscula := false
-	tieneNumero := false
-
+	tieneMayuscula, tieneNumero := false, false
 	for _, letra := range clave {
-		if unicode.IsUpper(letra) {
-			tieneMayuscula = true
-		}
-		if unicode.IsDigit(letra) {
-			tieneNumero = true
-		}
+		tieneMayuscula = tieneMayuscula || unicode.IsUpper(letra)
+		tieneNumero = tieneNumero || unicode.IsDigit(letra)
 	}
 
 	if !tieneMayuscula || !tieneNumero {
@@ -128,9 +116,7 @@ func validarContrasena(clave string) error {
 	return nil
 }
 
-// revisarEstado dice si la cuenta puede entrar. Los estados son los de la
-// tabla auth.usuario: activo, inactivo y suspendido.
-// (El "bloqueado" de la pagina es el bloqueo de 15 minutos: error 423.)
+// revisarEstado dice si la cuenta puede entrar (activo, inactivo o suspendido).
 func revisarEstado(usuario models.Usuario) error {
 
 	if !usuario.Activo {
@@ -149,7 +135,7 @@ func revisarEstado(usuario models.Usuario) error {
 	return helpers.NuevoError(http.StatusForbidden, "Tu cuenta no puede iniciar sesion. Comunicate con soporte.")
 }
 
-// asignarRolUsuario le da el rol "Usuario" a un usuario nuevo.
+// asignarRolUsuario le da el rol "Usuario" a una cuenta nueva.
 func asignarRolUsuario(idUsuario int) error {
 
 	var roles []models.Rol
@@ -167,8 +153,7 @@ func asignarRolUsuario(idUsuario int) error {
 	return helpers.Crear(helpers.UrlCrudAuth+"/usuario_rol", asignacion, nil)
 }
 
-// rolesDelUsuario devuelve los nombres de los roles activos del usuario
-// (Administrador, Asesor, Usuario, Gerente).
+// rolesDelUsuario devuelve los nombres de sus roles (Administrador, Usuario...).
 func rolesDelUsuario(idUsuario int) ([]string, error) {
 
 	var asignaciones []models.UsuarioRol
@@ -194,20 +179,17 @@ func rolesDelUsuario(idUsuario int) ([]string, error) {
 	return roles, nil
 }
 
-// rolPrincipal convierte los roles de la base en el rol que usa la pagina:
-// "admin" si es Administrador, si no "user".
+// rolPrincipal: "admin" si es Administrador, si no "user" (lo que usa la pagina).
 func rolPrincipal(roles []string) string {
-
 	for _, rol := range roles {
 		if strings.EqualFold(rol, "Administrador") {
 			return "admin"
 		}
 	}
-
 	return "user"
 }
 
-// buscarCredencial trae la clave cifrada de un usuario (si tiene).
+// buscarCredencial trae la clave cifrada del usuario (si tiene).
 func buscarCredencial(idUsuario int) (models.Credencial, bool, error) {
 
 	var credenciales []models.Credencial
@@ -223,9 +205,7 @@ func buscarCredencial(idUsuario int) (models.Credencial, bool, error) {
 	return credenciales[0], true, nil
 }
 
-// auditar guarda un evento en auditoria_login. Si falla no se detiene
-// nada: la auditoria no debe impedir que el usuario use la app.
-// tipoEvento: login, logout, cambio_contrasena o acceso_denegado.
+// auditar guarda un evento en auditoria_login (si falla, no detiene nada).
 func auditar(idUsuario int, tipoEvento string, exitoso bool, ip string, navegador string) {
 
 	estado := "exitoso"
@@ -242,8 +222,11 @@ func auditar(idUsuario int, tipoEvento string, exitoso bool, ip string, navegado
 	}, nil)
 }
 
-// ultimoCodigo trae el codigo mas reciente del usuario para ese proposito.
-// Con soloActivos = true ignora los que ya se usaron.
+// ------------------------------------------------------------
+// Codigos del login y de recuperar contrasena (tabla codigo_verificacion)
+// ------------------------------------------------------------
+
+// ultimoCodigo trae el codigo mas reciente (soloActivos ignora los ya usados).
 func ultimoCodigo(idUsuario int, proposito string, soloActivos bool) (models.CodigoVerificacion, bool, error) {
 
 	filtro := fmt.Sprintf("id_usuario:%d,proposito:%s", idUsuario, proposito)
@@ -264,24 +247,22 @@ func ultimoCodigo(idUsuario int, proposito string, soloActivos bool) (models.Cod
 	return codigos[0], true, nil
 }
 
-// crearCodigo crea un codigo de 6 numeros, lo guarda cifrado y lo envia
-// al correo del usuario. No deja pedir mas de un codigo por minuto.
+// crearCodigo genera un codigo de 6 numeros, lo guarda cifrado y lo envia por Gmail.
 func crearCodigo(usuario models.Usuario, proposito string, minutos int) error {
 
 	ahora := time.Now().UTC()
 
-	// 1. Limite: maximo un codigo por minuto
+	// 1. Maximo un codigo por minuto
 	if anterior, existe, err := ultimoCodigo(usuario.Id, proposito, false); err != nil {
 		return err
 	} else if existe && !anterior.FechaCreacion.IsZero() && ahora.Sub(anterior.FechaCreacion) < segundosEntreCodigos*time.Second {
 		return helpers.NuevoError(http.StatusTooManyRequests, "Ya te enviamos un codigo hace menos de un minuto. Revisa tu correo o espera un momento.")
 	}
 
-	// 2. Crear el codigo y guardarlo cifrado
+	// 2. Crear y guardar cifrado
 	codigo := helpers.NumeroAleatorio()
 
 	hash, err := helpers.Cifrar(codigo)
-
 	if err != nil {
 		return err
 	}
@@ -299,38 +280,30 @@ func crearCodigo(usuario models.Usuario, proposito string, minutos int) error {
 		return err
 	}
 
-	// 3. Enviarlo por correo
-	asunto := "Tu codigo para iniciar sesion en FinanceUp"
-	motivo := "iniciar sesion"
-
+	// 3. Enviarlo; si el correo falla, el codigo se anula
+	asunto, motivo := "Tu codigo para iniciar sesion en FinanceUp", "iniciar sesion"
 	if proposito == "recuperar_contrasena" {
-		asunto = "Codigo para recuperar tu contrasena de FinanceUp"
-		motivo = "cambiar tu contrasena"
+		asunto, motivo = "Codigo para recuperar tu contrasena de FinanceUp", "cambiar tu contrasena"
 	}
 
 	mensaje := fmt.Sprintf("Hola %s,\n\nTu codigo para %s es: %s\n\nVence en %d minutos y solo sirve una vez.\nSi no fuiste tu, ignora este correo y cambia tu contrasena.\n\nFinanceUp",
 		usuario.Nombre, motivo, codigo, minutos)
 
 	if err := helpers.EnviarCorreo(usuario.Email, asunto, mensaje); err != nil {
-
-		// Si no se pudo enviar, el codigo no sirve: se desactiva
 		if nuevoCodigo.Id > 0 {
 			nuevoCodigo.Activo = false
 			helpers.Actualizar(fmt.Sprintf("%s/codigo_verificacion/%d", helpers.UrlCrudAuth, nuevoCodigo.Id), nuevoCodigo)
 		}
-
 		return err
 	}
 
 	return nil
 }
 
-// validarCodigo revisa el ultimo codigo activo del usuario.
-// Si es correcto lo desactiva (no sirve dos veces); si no, suma un intento.
+// validarCodigo compara con el ultimo codigo activo: si es correcto lo anula, si no suma un intento.
 func validarCodigo(idUsuario int, proposito string, codigoEscrito string) error {
 
 	codigo, existe, err := ultimoCodigo(idUsuario, proposito, true)
-
 	if err != nil {
 		return err
 	}
@@ -363,18 +336,19 @@ func validarCodigo(idUsuario int, proposito string, codigoEscrito string) error 
 	return nil
 }
 
-// guardarContrasena guarda una clave nueva cifrada (crea la credencial si no
-// existe). Tambien borra los intentos fallidos y el bloqueo de 15 minutos.
+// ------------------------------------------------------------
+// Contrasena y sesion
+// ------------------------------------------------------------
+
+// guardarContrasena guarda la clave cifrada y quita intentos fallidos y bloqueo.
 func guardarContrasena(idUsuario int, contrasena string) error {
 
 	credencial, existe, err := buscarCredencial(idUsuario)
-
 	if err != nil {
 		return err
 	}
 
 	hash, err := helpers.Cifrar(contrasena)
-
 	if err != nil {
 		return err
 	}
@@ -388,7 +362,7 @@ func guardarContrasena(idUsuario int, contrasena string) error {
 	credencial.FechaUltimoCambio = ahora
 	credencial.FechaActualizacion = ahora
 	credencial.IntentosFallidos = 0
-	credencial.BloqueadoHasta = time.Time{} // sin bloqueo
+	credencial.BloqueadoHasta = time.Time{}
 
 	if !existe {
 		credencial.IdUsuario = &models.Ref{Id: idUsuario}
@@ -398,23 +372,18 @@ func guardarContrasena(idUsuario int, contrasena string) error {
 	return helpers.Actualizar(fmt.Sprintf("%s/credencial/%d", helpers.UrlCrudAuth, credencial.Id), credencial)
 }
 
-// sumarIntentoFallido cuenta un intento fallido y bloquea la cuenta
-// 15 minutos al llegar a 5. Devuelve true si la acaba de bloquear.
-func sumarIntentoFallido(credencial *models.Credencial) bool {
+// sumarIntentoFallido cuenta un intento y bloquea 15 minutos al llegar a 5.
+func sumarIntentoFallido(credencial *models.Credencial) {
 
 	credencial.IntentosFallidos++
 
 	if credencial.IntentosFallidos >= intentosAntesDeBloquear {
 		credencial.IntentosFallidos = 0
 		credencial.BloqueadoHasta = time.Now().UTC().Add(minutosDeBloqueo * time.Minute)
-		return true
 	}
-
-	return false
 }
 
-// borrarUsuario deshace un registro que quedo a medias: borra la
-// credencial (si alcanzo a crearse) y el usuario, para liberar el correo.
+// borrarUsuario deshace un registro a medias para que el correo quede libre.
 func borrarUsuario(idUsuario int) {
 
 	if credencial, existe, err := buscarCredencial(idUsuario); err == nil && existe {
@@ -431,12 +400,10 @@ func borrarUsuario(idUsuario int) {
 	helpers.Borrar(fmt.Sprintf("%s/usuario/%d", helpers.UrlCrudAuth, idUsuario))
 }
 
-// sesionIniciada arma la respuesta de un login exitoso: crea el token,
-// busca el rol y guarda la fecha de la ultima sesion.
+// sesionIniciada arma la respuesta de un login exitoso: token, rol y datos del usuario.
 func sesionIniciada(usuario models.Usuario) (map[string]interface{}, error) {
 
 	roles, err := rolesDelUsuario(usuario.Id)
-
 	if err != nil {
 		return nil, err
 	}
@@ -444,7 +411,6 @@ func sesionIniciada(usuario models.Usuario) (map[string]interface{}, error) {
 	rol := rolPrincipal(roles)
 
 	token, err := helpers.CrearToken(usuario.Id, rol)
-
 	if err != nil {
 		return nil, err
 	}
@@ -455,13 +421,13 @@ func sesionIniciada(usuario models.Usuario) (map[string]interface{}, error) {
 	return map[string]interface{}{
 		"mensaje":    "Inicio de sesion exitoso",
 		"token":      token,
-		"expira_en":  int(helpers.DuracionToken.Seconds()), // segundos
+		"expira_en":  int(helpers.DuracionToken.Seconds()),
 		"id_usuario": usuario.Id,
 		"nombre":     usuario.Nombre,
 		"apellido":   usuario.Apellido,
 		"email":      usuario.Email,
-		"rol":        rol,   // "admin" o "user" (lo que usa la pagina)
-		"roles":      roles, // los nombres de la base de datos
+		"rol":        rol,
+		"roles":      roles,
 		"estado":     usuario.Estado,
 	}, nil
 }
@@ -470,19 +436,15 @@ func sesionIniciada(usuario models.Usuario) (map[string]interface{}, error) {
 // Funciones que usan los controladores
 // ------------------------------------------------------------
 
-// ObtenerPerfil: usuario + tipo de documento + roles
+// ObtenerPerfil: datos del usuario, tipo de documento y roles.
 func ObtenerPerfil(id int) (map[string]interface{}, error) {
 
-	// 1. El usuario
 	usuario, err := BuscarUsuario(id)
-
 	if err != nil {
 		return nil, err
 	}
 
-	// 2. Su tipo de documento
 	tipoDocumento := ""
-
 	if usuario.TipoDocumento != nil {
 		var tipo models.TipoDocumento
 		if helpers.ConsultarUno(fmt.Sprintf("%s/tipo_documento/%d", helpers.UrlCrudAuth, usuario.TipoDocumento.Id), &tipo, "") == nil {
@@ -490,14 +452,11 @@ func ObtenerPerfil(id int) (map[string]interface{}, error) {
 		}
 	}
 
-	// 3. Sus roles
 	roles, err := rolesDelUsuario(id)
-
 	if err != nil {
 		return nil, err
 	}
 
-	// 4. Armar el perfil
 	cedula := ""
 	if usuario.Cedula != nil {
 		cedula = *usuario.Cedula
@@ -525,12 +484,11 @@ func ObtenerPerfil(id int) (map[string]interface{}, error) {
 	}, nil
 }
 
-// Registrar: crea usuario + clave cifrada + rol "Usuario" y deja la
-// sesion iniciada (devuelve el token). Si algo falla a la mitad, borra
-// lo que alcanzo a crear para que el correo quede libre.
+// Registrar crea la cuenta (usuario + clave + rol) y deja la sesion iniciada.
+// Si algo falla a la mitad, borra lo creado.
 func Registrar(datos models.DatosRegistro) (map[string]interface{}, error) {
 
-	// 1. Validar (las mismas reglas que la pagina)
+	// 1. Validar
 	datos.Nombre = strings.TrimSpace(datos.Nombre)
 	datos.Apellido = strings.TrimSpace(datos.Apellido)
 
@@ -539,7 +497,6 @@ func Registrar(datos models.DatosRegistro) (map[string]interface{}, error) {
 	}
 
 	email, err := normalizarEmail(datos.Email)
-
 	if err != nil {
 		return nil, err
 	}
@@ -552,18 +509,14 @@ func Registrar(datos models.DatosRegistro) (map[string]interface{}, error) {
 		return nil, helpers.NuevoError(http.StatusBadRequest, "Debes aceptar los terminos y condiciones")
 	}
 
-	// 2. Revisar que el correo no este registrado
-	_, existe, err := buscarUsuarioPorEmail(email)
-
-	if err != nil {
+	// 2. El correo no debe estar registrado
+	if _, existe, err := buscarUsuarioPorEmail(email); err != nil {
 		return nil, err
-	}
-
-	if existe {
+	} else if existe {
 		return nil, helpers.NuevoError(http.StatusConflict, "Ya existe un usuario con ese correo")
 	}
 
-	// 3. Crear el usuario
+	// 3. Crear el usuario (la cedula es opcional: vacia se guarda NULL)
 	nuevoUsuario := models.Usuario{
 		Nombre:                  datos.Nombre,
 		Apellido:                datos.Apellido,
@@ -577,7 +530,6 @@ func Registrar(datos models.DatosRegistro) (map[string]interface{}, error) {
 		Activo:                  true,
 	}
 
-	// La cedula es opcional: si no llega se deja en nil para que se guarde NULL
 	if cedula := strings.TrimSpace(datos.Cedula); cedula != "" {
 		nuevoUsuario.Cedula = &cedula
 	}
@@ -590,20 +542,14 @@ func Registrar(datos models.DatosRegistro) (map[string]interface{}, error) {
 		return nil, err
 	}
 
-	// 4. Guardar la clave cifrada y el rol. Si falla, se deshace todo.
-	if err := guardarContrasena(nuevoUsuario.Id, datos.Contrasena); err != nil {
+	// 4. Clave y rol (si falla, se deshace todo)
+	if guardarContrasena(nuevoUsuario.Id, datos.Contrasena) != nil || asignarRolUsuario(nuevoUsuario.Id) != nil {
 		borrarUsuario(nuevoUsuario.Id)
 		return nil, helpers.NuevoError(http.StatusBadGateway, "No se pudo completar el registro, intenta de nuevo")
 	}
 
-	if err := asignarRolUsuario(nuevoUsuario.Id); err != nil {
-		borrarUsuario(nuevoUsuario.Id)
-		return nil, helpers.NuevoError(http.StatusBadGateway, "No se pudo completar el registro, intenta de nuevo")
-	}
-
-	// 5. Dejar la sesion iniciada (la pagina entra directo despues del registro)
+	// 5. Sesion iniciada
 	sesion, err := sesionIniciada(nuevoUsuario)
-
 	if err != nil {
 		return nil, err
 	}
@@ -613,51 +559,40 @@ func Registrar(datos models.DatosRegistro) (map[string]interface{}, error) {
 	return sesion, nil
 }
 
-// IniciarSesion: paso 1 del login. Valida correo y clave y envia el codigo.
-// Bloquea la cuenta 15 minutos tras 5 intentos fallidos.
+// IniciarSesion (paso 1): valida correo y clave y envia el codigo al correo.
+// Bloquea 15 minutos tras 5 intentos fallidos.
 func IniciarSesion(datos models.DatosLogin) (map[string]interface{}, error) {
 
-	// Mismo mensaje si el correo no existe o si la clave esta mal,
-	// para no contarle a un extrano que correos estan registrados.
+	// Mismo mensaje si el correo no existe o la clave esta mal
 	errorLogin := helpers.NuevoError(http.StatusUnauthorized, "Correo o contrasena incorrectos")
 
 	email, err := normalizarEmail(datos.Email)
-
 	if err != nil {
 		return nil, errorLogin
 	}
 
-	// 1. Buscar el usuario y su credencial
 	usuario, existe, err := buscarUsuarioPorEmail(email)
-
 	if err != nil {
 		return nil, err
 	}
-
 	if !existe {
 		return nil, errorLogin
 	}
 
 	credencial, tiene, err := buscarCredencial(usuario.Id)
-
 	if err != nil {
 		return nil, err
 	}
-
 	if !tiene {
-		// Por ejemplo, una cuenta creada con Google que nunca puso clave
-		return nil, errorLogin
+		return nil, errorLogin // por ejemplo, una cuenta creada con Google
 	}
 
-	// 2. Si esta bloqueada no se revisa la clave (asi no se puede adivinar)
-	ahora := time.Now().UTC()
-
-	if credencial.BloqueadoHasta.After(ahora) {
+	// Bloqueada: no se revisa la clave
+	if credencial.BloqueadoHasta.After(time.Now().UTC()) {
 		auditar(usuario.Id, "acceso_denegado", false, datos.Ip, datos.Navegador)
 		return nil, helpers.NuevoError(http.StatusLocked, "Cuenta bloqueada por intentos fallidos. Intenta de nuevo en 15 minutos.")
 	}
 
-	// 3. Comparar la clave y actualizar los intentos fallidos
 	claveCorrecta := helpers.CoincideCifrado(credencial.ContrasenaHash, datos.Contrasena)
 
 	if claveCorrecta {
@@ -667,19 +602,17 @@ func IniciarSesion(datos models.DatosLogin) (map[string]interface{}, error) {
 	}
 
 	helpers.Actualizar(fmt.Sprintf("%s/credencial/%d", helpers.UrlCrudAuth, credencial.Id), credencial)
-
 	auditar(usuario.Id, "login", claveCorrecta, datos.Ip, datos.Navegador)
 
 	if !claveCorrecta {
 		return nil, errorLogin
 	}
 
-	// 4. Solo con la clave correcta se dice si la cuenta tiene problemas
+	// Solo con la clave correcta se dice si la cuenta tiene problemas
 	if err := revisarEstado(usuario); err != nil {
 		return nil, err
 	}
 
-	// 5. Enviar el codigo de 6 numeros (vence en 10 minutos)
 	respuesta := map[string]interface{}{
 		"mensaje":         "Te enviamos un codigo de verificacion a tu correo",
 		"requiere_codigo": true,
@@ -687,20 +620,18 @@ func IniciarSesion(datos models.DatosLogin) (map[string]interface{}, error) {
 	}
 
 	if err := crearCodigo(usuario, "login_2fa", minutosCodigoLogin); err != nil {
-
-		// Si ya se envio uno hace menos de un minuto, ese sigue sirviendo
+		// Si se envio uno hace menos de un minuto, ese sigue sirviendo
 		if errorApi, ok := err.(*helpers.ErrorApi); ok && errorApi.Codigo == http.StatusTooManyRequests {
 			respuesta["mensaje"] = "Ya te enviamos un codigo hace un momento, revisa tu correo"
 			return respuesta, nil
 		}
-
 		return nil, err
 	}
 
 	return respuesta, nil
 }
 
-// VerificarCodigo: paso 2 del login. Valida el codigo y entrega el token.
+// VerificarCodigo (paso 2): valida el codigo y entrega el token.
 func VerificarCodigo(datos models.DatosCodigo) (map[string]interface{}, error) {
 
 	if datos.IdUsuario <= 0 {
@@ -712,12 +643,10 @@ func VerificarCodigo(datos models.DatosCodigo) (map[string]interface{}, error) {
 	}
 
 	usuario, err := BuscarUsuario(datos.IdUsuario)
-
 	if err != nil {
 		return nil, err
 	}
 
-	// Por si la cuenta se suspendio mientras escribia el codigo
 	if err := revisarEstado(usuario); err != nil {
 		return nil, err
 	}
@@ -725,76 +654,61 @@ func VerificarCodigo(datos models.DatosCodigo) (map[string]interface{}, error) {
 	return sesionIniciada(usuario)
 }
 
-// ReenviarCodigo: el boton "Reenviar codigo" del login.
-// Solo funciona si la persona ya paso el paso 1 (correo y clave) hace
-// poco, es decir, si tiene un codigo de login pendiente y sin vencer.
+// ReenviarCodigo: boton "Reenviar codigo". Solo si ya paso el paso 1 hace poco.
 func ReenviarCodigo(datos models.DatosReenviar) (map[string]interface{}, error) {
 
 	if datos.IdUsuario <= 0 {
 		return nil, helpers.NuevoError(http.StatusBadRequest, "El id del usuario es obligatorio")
 	}
 
-	inicia := helpers.NuevoError(http.StatusUnauthorized, "Inicia sesion de nuevo para recibir un codigo")
+	iniciaSesion := helpers.NuevoError(http.StatusUnauthorized, "Inicia sesion de nuevo para recibir un codigo")
 
 	pendiente, existe, err := ultimoCodigo(datos.IdUsuario, "login_2fa", true)
-
 	if err != nil {
 		return nil, err
 	}
-
 	if !existe || pendiente.FechaExpiracion.Before(time.Now().UTC()) {
-		return nil, inicia
+		return nil, iniciaSesion
 	}
 
 	usuario, err := BuscarUsuario(datos.IdUsuario)
-
 	if err != nil {
-		return nil, inicia
+		return nil, iniciaSesion
 	}
 
 	if err := revisarEstado(usuario); err != nil {
 		return nil, err
 	}
 
-	// El codigo anterior queda sin efecto: validarCodigo siempre usa el mas nuevo
+	// El codigo anterior deja de servir: siempre se valida el mas nuevo
 	if err := crearCodigo(usuario, "login_2fa", minutosCodigoLogin); err != nil {
 		return nil, err
 	}
 
-	return map[string]interface{}{
-		"mensaje":    "Te enviamos un codigo nuevo a tu correo",
-		"id_usuario": usuario.Id,
-	}, nil
+	return map[string]interface{}{"mensaje": "Te enviamos un codigo nuevo a tu correo", "id_usuario": usuario.Id}, nil
 }
 
-// IniciarSesionSocial: entrar con Google.
-// La pagina manda el id_token que le dio Google; aqui se verifica con
-// Google y solo se usan el correo y el id que Google confirma.
+// IniciarSesionSocial: entrar con Google (verificando el token con Google).
 func IniciarSesionSocial(datos models.DatosLoginSocial) (map[string]interface{}, error) {
 
 	proveedor := strings.ToLower(strings.TrimSpace(datos.Proveedor))
 
-	// 1. Por ahora solo Google se puede verificar
 	if proveedor == "apple" || proveedor == "facebook" {
 		return nil, helpers.NuevoError(http.StatusNotImplemented, "El inicio de sesion con "+proveedor+" todavia no esta disponible")
 	}
-
 	if proveedor != "google" {
 		return nil, helpers.NuevoError(http.StatusBadRequest, "El proveedor debe ser google")
 	}
 
-	// 2. Preguntarle a Google si el token es real
 	google, err := helpers.VerificarTokenGoogle(datos.IdToken)
-
 	if err != nil {
 		return nil, err
 	}
 
 	email := strings.ToLower(strings.TrimSpace(google.Email))
 
-	// 3. Si la cuenta de Google ya estaba vinculada, entra con ese usuario
+	// 1. Cuenta de Google ya vinculada
 	var cuentas []models.CuentaSocial
-
 	if err := helpers.ConsultarLista(helpers.UrlCrudAuth+"/cuenta_social?query=proveedor:google,id_externo:"+url.QueryEscape(google.IdExterno)+",activo:true", &cuentas); err != nil {
 		return nil, err
 	}
@@ -809,9 +723,8 @@ func IniciarSesionSocial(datos models.DatosLoginSocial) (map[string]interface{},
 
 	} else {
 
-		// 4. Si no, buscar el usuario por el correo que Google confirmo; si no existe, crearlo
-		usuarioExistente, existe, err := buscarUsuarioPorEmail(email)
-
+		// 2. Si no, buscar por el correo que confirmo Google; si no existe, crearlo
+		existente, existe, err := buscarUsuarioPorEmail(email)
 		if err != nil {
 			return nil, err
 		}
@@ -819,25 +732,20 @@ func IniciarSesionSocial(datos models.DatosLoginSocial) (map[string]interface{},
 		creado := false
 
 		if existe {
+			usuario = existente
 
-			usuario = usuarioExistente
-
-			// Ese usuario ya tiene otra cuenta de Google vinculada (la tabla no deja dos)
 			var vinculadas []models.CuentaSocial
 			helpers.ConsultarLista(fmt.Sprintf("%s/cuenta_social?query=id_usuario:%d,proveedor:google", helpers.UrlCrudAuth, usuario.Id), &vinculadas)
 
 			if len(vinculadas) > 0 {
 				return nil, helpers.NuevoError(http.StatusConflict, "Esta cuenta ya esta vinculada a otra cuenta de Google")
 			}
-
 		} else {
-
 			usuario = models.Usuario{Nombre: google.Nombre, Apellido: google.Apellido, Email: email, Estado: "activo", Activo: true}
 
 			if err := helpers.Crear(helpers.UrlCrudAuth+"/usuario", usuario, &usuario); err != nil {
 				return nil, err
 			}
-
 			creado = true
 
 			if err := asignarRolUsuario(usuario.Id); err != nil {
@@ -846,14 +754,8 @@ func IniciarSesionSocial(datos models.DatosLoginSocial) (map[string]interface{},
 			}
 		}
 
-		// 5. Vincular la cuenta de Google al usuario
-		cuenta := models.CuentaSocial{
-			IdUsuario:      &models.Ref{Id: usuario.Id},
-			Proveedor:      "google",
-			IdExterno:      google.IdExterno,
-			EmailProveedor: email,
-			Activo:         true,
-		}
+		// 3. Vincular la cuenta de Google
+		cuenta := models.CuentaSocial{IdUsuario: &models.Ref{Id: usuario.Id}, Proveedor: "google", IdExterno: google.IdExterno, EmailProveedor: email, Activo: true}
 
 		if err := helpers.Crear(helpers.UrlCrudAuth+"/cuenta_social", cuenta, nil); err != nil {
 			if creado {
@@ -863,7 +765,6 @@ func IniciarSesionSocial(datos models.DatosLoginSocial) (map[string]interface{},
 		}
 	}
 
-	// 6. La cuenta debe estar activa
 	if err := revisarEstado(usuario); err != nil {
 		auditar(usuario.Id, "acceso_denegado", false, datos.Ip, datos.Navegador)
 		return nil, err
@@ -872,7 +773,6 @@ func IniciarSesionSocial(datos models.DatosLoginSocial) (map[string]interface{},
 	auditar(usuario.Id, "login", true, datos.Ip, datos.Navegador)
 
 	sesion, err := sesionIniciada(usuario)
-
 	if err != nil {
 		return nil, err
 	}
@@ -882,28 +782,23 @@ func IniciarSesionSocial(datos models.DatosLoginSocial) (map[string]interface{},
 	return sesion, nil
 }
 
-// PedirCodigoRecuperacion: crea un codigo para cambiar la clave olvidada.
+// PedirCodigoRecuperacion envia un codigo para cambiar la clave olvidada.
 // Siempre responde lo mismo, para no revelar que correos existen.
 func PedirCodigoRecuperacion(email string) (map[string]interface{}, error) {
 
 	respuesta := map[string]interface{}{"mensaje": "Si el correo esta registrado, te enviamos un codigo"}
 
 	email, err := normalizarEmail(email)
-
 	if err != nil {
 		return nil, err
 	}
 
 	usuario, existe, err := buscarUsuarioPorEmail(email)
-
 	if err != nil {
 		return nil, err
 	}
 
 	if existe && revisarEstado(usuario) == nil {
-
-		// Si falla (por ejemplo, el limite de un codigo por minuto) se
-		// anota en la consola del MID, pero la respuesta es la misma.
 		if err := crearCodigo(usuario, "recuperar_contrasena", minutosCodigoRecuperar); err != nil {
 			fmt.Println("[RECUPERAR CONTRASENA] No se envio el codigo:", err.Error())
 		}
@@ -912,7 +807,7 @@ func PedirCodigoRecuperacion(email string) (map[string]interface{}, error) {
 	return respuesta, nil
 }
 
-// RestablecerContrasena: valida el codigo y guarda la clave nueva.
+// RestablecerContrasena valida el codigo y guarda la clave nueva (quita el bloqueo).
 func RestablecerContrasena(datos models.DatosContrasena) (map[string]interface{}, error) {
 
 	if err := validarContrasena(datos.ContrasenaNueva); err != nil {
@@ -922,17 +817,14 @@ func RestablecerContrasena(datos models.DatosContrasena) (map[string]interface{}
 	codigoIncorrecto := helpers.NuevoError(http.StatusUnauthorized, "El codigo no es correcto")
 
 	email, err := normalizarEmail(datos.Email)
-
 	if err != nil {
 		return nil, codigoIncorrecto
 	}
 
 	usuario, existe, err := buscarUsuarioPorEmail(email)
-
 	if err != nil {
 		return nil, err
 	}
-
 	if !existe {
 		return nil, codigoIncorrecto
 	}
@@ -941,7 +833,6 @@ func RestablecerContrasena(datos models.DatosContrasena) (map[string]interface{}
 		return nil, err
 	}
 
-	// guardarContrasena tambien quita el bloqueo de 15 minutos
 	if err := guardarContrasena(usuario.Id, datos.ContrasenaNueva); err != nil {
 		return nil, err
 	}
@@ -951,8 +842,7 @@ func RestablecerContrasena(datos models.DatosContrasena) (map[string]interface{}
 	return map[string]interface{}{"mensaje": "Contrasena actualizada"}, nil
 }
 
-// CambiarContrasena: desde el perfil, pidiendo la clave actual.
-// Tambien bloquea 15 minutos tras 5 intentos con la clave actual mal.
+// CambiarContrasena desde el perfil (pide la clave actual; bloquea tras 5 intentos).
 func CambiarContrasena(idUsuario int, datos models.DatosContrasena) (map[string]interface{}, error) {
 
 	if err := validarContrasena(datos.ContrasenaNueva); err != nil {
@@ -960,11 +850,9 @@ func CambiarContrasena(idUsuario int, datos models.DatosContrasena) (map[string]
 	}
 
 	credencial, tiene, err := buscarCredencial(idUsuario)
-
 	if err != nil {
 		return nil, err
 	}
-
 	if !tiene {
 		return nil, helpers.NuevoError(http.StatusNotFound, "Tu cuenta no tiene contrasena (entraste con Google). Usa \"Olvide mi contrasena\" para crear una.")
 	}
@@ -974,12 +862,9 @@ func CambiarContrasena(idUsuario int, datos models.DatosContrasena) (map[string]
 	}
 
 	if !helpers.CoincideCifrado(credencial.ContrasenaHash, datos.ContrasenaActual) {
-
 		sumarIntentoFallido(&credencial)
 		helpers.Actualizar(fmt.Sprintf("%s/credencial/%d", helpers.UrlCrudAuth, credencial.Id), credencial)
-
 		auditar(idUsuario, "cambio_contrasena", false, datos.Ip, datos.Navegador)
-
 		return nil, helpers.NuevoError(http.StatusUnauthorized, "La contrasena actual no es correcta")
 	}
 
@@ -992,7 +877,7 @@ func CambiarContrasena(idUsuario int, datos models.DatosContrasena) (map[string]
 	return map[string]interface{}{"mensaje": "Contrasena actualizada"}, nil
 }
 
-// CerrarSesion: invalida el token y lo anota en la auditoria.
+// CerrarSesion anula el token y lo anota en la auditoria.
 func CerrarSesion(token helpers.DatosToken, ip string, navegador string) map[string]interface{} {
 
 	helpers.RevocarToken(token)

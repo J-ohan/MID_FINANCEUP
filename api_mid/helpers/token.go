@@ -16,95 +16,75 @@ import (
 )
 
 // ============================================================
-// TOKEN DE SESION (JWT firmado con HS256)
-// Cuando el usuario termina el login, el MID le entrega un token.
-// La pagina lo guarda y lo manda en cada peticion en el encabezado:
-//   Authorization: Bearer <token>
-// El filtro (filtro.go) lo revisa antes de dejar pasar la peticion.
-//
-// El token tiene 3 partes separadas por puntos:
-//   encabezado . datos (id del usuario, rol, vencimiento) . firma
-// La firma se hace con JWT_SECRETO (del .env). Si alguien cambia
-// los datos, la firma ya no coincide y el token se rechaza.
+// TOKEN DE SESION (JWT HS256)
+// La pagina lo manda en cada peticion: Authorization: Bearer <token>
+// Se firma con JWT_SECRETO del .env; si alguien lo cambia, la firma no coincide.
 // ============================================================
 
-// DuracionToken: cuanto dura una sesion antes de pedir login otra vez.
-var DuracionToken = 8 * time.Hour
+// DuracionToken es cuanto dura una sesion.
+const DuracionToken = 8 * time.Hour
 
-// DatosToken: lo que va guardado dentro del token.
+// DatosToken es lo que va guardado dentro del token.
 type DatosToken struct {
 	IdUsuario int    `json:"sub"`
 	Rol       string `json:"rol"`
 	Emitido   int64  `json:"iat"`
 	Expira    int64  `json:"exp"`
-	Id        string `json:"jti"` // id unico del token (para cerrar sesion)
+	Id        string `json:"jti"` // id unico, para poder cerrar esa sesion
 }
 
 var (
-	secretoToken     []byte
-	cargarSecretoUna sync.Once
+	secretoToken []byte
+	cargarUnaVez sync.Once
 
-	// Tokens cerrados con logout (id -> vencimiento). Viven en memoria:
-	// si el MID se reinicia la lista se borra, pero esos tokens igual
-	// vencen solos en DuracionToken.
-	tokensRevocados      = map[string]int64{}
-	tokensRevocadosMutex sync.Mutex
+	// Sesiones cerradas con logout (se borran al reiniciar; igual vencen solas)
+	tokensRevocados = map[string]int64{}
+	mutexRevocados  sync.Mutex
 )
 
-// CargarSeguridad lee JWT_SECRETO del .env. Se llama una vez desde main.go.
-// Si no existe, se inventa uno al azar y se avisa en la consola
-// (las sesiones se pierden cada vez que el MID se reinicia).
+// CargarSeguridad lee JWT_SECRETO (minimo 32 caracteres). Se llama en main.go.
+// Si no existe, usa uno temporal: las sesiones se pierden al reiniciar.
 func CargarSeguridad() {
-	cargarSecretoUna.Do(func() {
+	cargarUnaVez.Do(func() {
 
 		if valor := os.Getenv("JWT_SECRETO"); len(valor) >= 32 {
 			secretoToken = []byte(valor)
 			return
-		} else if valor != "" {
-			fmt.Println("[AVISO] JWT_SECRETO es muy corto (minimo 32 caracteres); se usa uno temporal.")
-		} else {
-			fmt.Println("[AVISO] JWT_SECRETO no esta en el .env; se usa uno temporal (las sesiones se pierden al reiniciar).")
 		}
 
-		aleatorio := make([]byte, 32)
-		rand.Read(aleatorio)
-		secretoToken = aleatorio
+		fmt.Println("[AVISO] JWT_SECRETO falta o es muy corto en el .env; se usa uno temporal.")
+		secretoToken = make([]byte, 32)
+		rand.Read(secretoToken)
 	})
 }
 
-// CrearToken arma y firma un token para el usuario.
+// CrearToken arma y firma el token de un usuario.
 func CrearToken(idUsuario int, rol string) (string, error) {
 
 	CargarSeguridad()
 
-	idToken := make([]byte, 16)
-	rand.Read(idToken)
+	idUnico := make([]byte, 16)
+	rand.Read(idUnico)
 
 	ahora := time.Now().UTC()
 
-	datos := DatosToken{
+	datos, err := json.Marshal(DatosToken{
 		IdUsuario: idUsuario,
 		Rol:       rol,
 		Emitido:   ahora.Unix(),
 		Expira:    ahora.Add(DuracionToken).Unix(),
-		Id:        hex.EncodeToString(idToken),
-	}
-
-	encabezado := codificar([]byte(`{"alg":"HS256","typ":"JWT"}`))
-
-	jsonDatos, err := json.Marshal(datos)
-
+		Id:        hex.EncodeToString(idUnico),
+	})
 	if err != nil {
 		return "", NuevoError(http.StatusInternalServerError, "No fue posible crear la sesion")
 	}
 
-	contenido := encabezado + "." + codificar(jsonDatos)
+	contenido := codificar([]byte(`{"alg":"HS256","typ":"JWT"}`)) + "." + codificar(datos)
 
-	return contenido + "." + firmar(contenido), nil
+	return contenido + "." + codificar(calcularFirma(contenido)), nil
 }
 
-// LeerToken revisa la firma, que no este vencido y que no se haya
-// cerrado la sesion. Si todo esta bien devuelve los datos del token.
+// LeerToken revisa firma, vencimiento y logout; si todo esta bien devuelve sus datos.
 func LeerToken(token string) (DatosToken, error) {
 
 	CargarSeguridad()
@@ -112,59 +92,54 @@ func LeerToken(token string) (DatosToken, error) {
 	invalido := NuevoError(http.StatusUnauthorized, "La sesion no es valida. Inicia sesion de nuevo.")
 
 	partes := strings.Split(strings.TrimSpace(token), ".")
-
 	if len(partes) != 3 {
 		return DatosToken{}, invalido
 	}
 
-	// 1. La firma debe coincidir (se compara de forma segura)
-	firmaRecibida, err := base64.RawURLEncoding.DecodeString(partes[2])
-
-	if err != nil || !hmac.Equal(firmaRecibida, calcularFirma(partes[0]+"."+partes[1])) {
+	// 1. La firma debe coincidir
+	firma, err := base64.RawURLEncoding.DecodeString(partes[2])
+	if err != nil || !hmac.Equal(firma, calcularFirma(partes[0]+"."+partes[1])) {
 		return DatosToken{}, invalido
 	}
 
-	// 2. Solo se aceptan tokens HS256 (los que crea este MID)
+	// 2. Solo tokens HS256 (los que crea este MID)
 	var encabezado struct {
 		Alg string `json:"alg"`
 	}
-
-	if jsonEncabezado, err := base64.RawURLEncoding.DecodeString(partes[0]); err != nil || json.Unmarshal(jsonEncabezado, &encabezado) != nil || encabezado.Alg != "HS256" {
+	if texto, err := base64.RawURLEncoding.DecodeString(partes[0]); err != nil || json.Unmarshal(texto, &encabezado) != nil || encabezado.Alg != "HS256" {
 		return DatosToken{}, invalido
 	}
 
-	// 3. Leer los datos
+	// 3. Los datos
 	var datos DatosToken
-
-	jsonDatos, err := base64.RawURLEncoding.DecodeString(partes[1])
-
-	if err != nil || json.Unmarshal(jsonDatos, &datos) != nil || datos.IdUsuario <= 0 {
+	texto, err := base64.RawURLEncoding.DecodeString(partes[1])
+	if err != nil || json.Unmarshal(texto, &datos) != nil || datos.IdUsuario <= 0 {
 		return DatosToken{}, invalido
 	}
 
-	// 4. Que no este vencido ni cerrado
+	// 4. No vencido ni cerrado
 	if time.Now().UTC().Unix() >= datos.Expira {
 		return DatosToken{}, NuevoError(http.StatusUnauthorized, "La sesion vencio. Inicia sesion de nuevo.")
 	}
 
-	tokensRevocadosMutex.Lock()
-	_, revocado := tokensRevocados[datos.Id]
-	tokensRevocadosMutex.Unlock()
+	mutexRevocados.Lock()
+	_, cerrado := tokensRevocados[datos.Id]
+	mutexRevocados.Unlock()
 
-	if revocado {
+	if cerrado {
 		return DatosToken{}, invalido
 	}
 
 	return datos, nil
 }
 
-// RevocarToken cierra la sesion de ese token (logout).
+// RevocarToken cierra esa sesion (logout).
 func RevocarToken(datos DatosToken) {
 
-	tokensRevocadosMutex.Lock()
-	defer tokensRevocadosMutex.Unlock()
+	mutexRevocados.Lock()
+	defer mutexRevocados.Unlock()
 
-	// Se aprovecha para borrar los que ya vencieron solos
+	// De paso se borran los que ya vencieron
 	ahora := time.Now().UTC().Unix()
 	for id, expira := range tokensRevocados {
 		if expira < ahora {
@@ -183,8 +158,4 @@ func calcularFirma(contenido string) []byte {
 	mac := hmac.New(sha256.New, secretoToken)
 	mac.Write([]byte(contenido))
 	return mac.Sum(nil)
-}
-
-func firmar(contenido string) string {
-	return codificar(calcularFirma(contenido))
 }
