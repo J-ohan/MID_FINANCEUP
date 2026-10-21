@@ -143,3 +143,9 @@ type DatosContrasena struct {
 type DatosReenviar struct {
 	IdUsuario int `json:"id_usuario"`
 }
+
+// DatosVerificarCorreo: POST /v1/verificar-correo (solo email) y PUT (email + codigo).
+type DatosVerificarCorreo struct {
+	Email  string `json:"email"`
+	Codigo string `json:"codigo"`
+}
