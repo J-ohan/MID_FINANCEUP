@@ -35,7 +35,8 @@ type DatosGoogle struct {
 	Apellido  string
 }
 
-// VerificarTokenGoogle revisa el id_token con Google y devuelve los datos confirmados.
+// VerificarTokenGoogle revisa el id_token con Google y devuelve los datos confirmados
+
 func VerificarTokenGoogle(idToken string) (DatosGoogle, error) {
 
 	idCliente := os.Getenv("GOOGLE_CLIENT_ID")

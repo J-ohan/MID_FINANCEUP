@@ -10,8 +10,6 @@ import (
 	beego "github.com/beego/beego/v2/server/web"
 	"github.com/beego/beego/v2/server/web/context"
 )
-
-// ============================================================
 // FILTRO DE AUTENTICACION
 // Corre ANTES de cada ruta (se activa en main.go). Hace 3 cosas:
 //   1. Deja pasar sin token las rutas publicas (login, registro...).
@@ -19,7 +17,6 @@ import (
 //   3. Revisa que el usuario solo pida SUS datos: si el id de la URL,
 //      el ?usuario= o el "id_usuario" del body no es el suyo, responde 403.
 //      El rol "admin" puede ver los datos de todos.
-// ============================================================
 
 // rutasPublicas: "METODO /ruta" que no necesitan token.
 var rutasPublicas = map[string]bool{

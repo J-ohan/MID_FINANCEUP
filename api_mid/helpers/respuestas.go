@@ -8,10 +8,10 @@ import (
 	beego "github.com/beego/beego/v2/server/web"
 )
 
-// ============================================================
+
 // Funciones que usan los controladores para leer lo que
 // llega y para responder.
-// ============================================================
+
 
 // LeerId lee el :id de la URL y revisa que sea un numero.
 func LeerId(c *beego.Controller) (int, error) {
