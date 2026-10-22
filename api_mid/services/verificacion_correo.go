@@ -33,6 +33,7 @@ type codigoCorreo struct {
 
 var (
 	codigosCorreo      = map[string]codigoCorreo{} // correo -> codigo pendiente
+	correosVerificados = map[string]time.Time{}    // correo -> momento de verificacion, consumido al registrar
 	mutexCodigosCorreo sync.Mutex                  // evita que dos peticiones lo cambien a la vez
 )
 
@@ -120,8 +121,19 @@ func ConfirmarVerificacionCorreo(datos models.DatosVerificarCorreo) (map[string]
 
 	// Correcto: se borra para que no sirva dos veces
 	delete(codigosCorreo, email)
+	correosVerificados[email] = time.Now().Add(30 * time.Minute)
 
 	return map[string]interface{}{"mensaje": "Correo verificado", "email": email, "verificado": true}, nil
+}
+
+// consumirCorreoVerificado impide completar el registro si no se confirmo el codigo.
+func consumirCorreoVerificado(email string) bool {
+	mutexCodigosCorreo.Lock()
+	defer mutexCodigosCorreo.Unlock()
+
+	expira, existe := correosVerificados[email]
+	delete(correosVerificados, email)
+	return existe && time.Now().Before(expira)
 }
 
 // limpiarCodigosVencidos borra los codigos viejos para no llenar la memoria.

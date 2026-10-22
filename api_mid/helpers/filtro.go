@@ -46,18 +46,13 @@ var rutasConIdUsuario = []*regexp.Regexp{
 
 // FiltroAutenticacion revisa el token y los permisos antes de cada ruta.
 func FiltroAutenticacion(ctx *context.Context) {
+    metodo := strings.ToUpper(ctx.Input.Method())
+    ruta := "/" + strings.Trim(strings.TrimSpace(ctx.Input.URL()), "/")
 
-	metodo := ctx.Input.Method()
-	ruta := strings.TrimRight(ctx.Input.URL(), "/")
-
-	// OPTIONS lo manda el navegador (CORS) y no trae token
-	if metodo == http.MethodOptions || rutasPublicas[metodo+" "+ruta] {
-		return
-	}
-
-	if metodo == http.MethodGet && catalogoPublico.MatchString(ruta) && ctx.Input.Query("usuario") == "" {
-		return
-	}
+    // OPTIONS y rutas públicas no necesitan token.
+    if metodo == http.MethodOptions || rutasPublicas[metodo+" "+ruta] {
+        return
+    }
 
 	datos, err := LeerToken(strings.TrimPrefix(ctx.Input.Header("Authorization"), "Bearer "))
 	if err != nil {
