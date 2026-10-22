@@ -54,6 +54,11 @@ func FiltroAutenticacion(ctx *context.Context) {
         return
     }
 
+	// Los catalogos de cursos y ofertas se ven sin iniciar sesion
+	if metodo == http.MethodGet && catalogoPublico.MatchString(ruta) && ctx.Input.Query("usuario") == "" {
+		return
+	}
+
 	datos, err := LeerToken(strings.TrimPrefix(ctx.Input.Header("Authorization"), "Bearer "))
 	if err != nil {
 		responderFiltro(ctx, err)
@@ -99,9 +104,17 @@ func idsPedidos(ctx *context.Context, ruta string) []int {
 
 	var body map[string]interface{}
 	if json.Unmarshal(ctx.Input.RequestBody, &body) == nil {
-		if valor, existe := body["id_usuario"]; existe {
-			id, _ := valor.(float64)
-			ids = append(ids, int(id))
+		// Go lee "ID_USUARIO" igual que "id_usuario", asi que se revisan todas las variantes
+		for llave, valor := range body {
+			if !strings.EqualFold(llave, "id_usuario") {
+				continue
+			}
+			numero, esNumero := valor.(float64)
+			if !esNumero || numero != float64(int(numero)) {
+				ids = append(ids, -1)
+				continue
+			}
+			ids = append(ids, int(numero))
 		}
 	}
 

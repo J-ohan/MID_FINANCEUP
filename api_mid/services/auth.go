@@ -427,7 +427,6 @@ func sesionIniciada(usuario models.Usuario) (map[string]interface{}, error) {
 		"apellido":   usuario.Apellido,
 		"email":      usuario.Email,
 		"rol":        rol,
-		"roles":      roles,
 		"estado":     usuario.Estado,
 	}, nil
 }
@@ -480,7 +479,6 @@ func ObtenerPerfil(id int) (map[string]interface{}, error) {
 		"fecha_nacimiento": fechaNacimiento,
 		"estado":           usuario.Estado,
 		"rol":              rolPrincipal(roles),
-		"roles":            roles,
 	}, nil
 }
 
@@ -505,7 +503,7 @@ func Registrar(datos models.DatosRegistro) (map[string]interface{}, error) {
 		return nil, err
 	}
 
-	if !consumirCorreoVerificado(email) {
+	if !correoVerificado(email) {
 		return nil, helpers.NuevoError(http.StatusForbidden, "Verifica tu correo antes de registrarte. Solicita y confirma el codigo primero.")
 	}
 
@@ -551,6 +549,9 @@ func Registrar(datos models.DatosRegistro) (map[string]interface{}, error) {
 		borrarUsuario(nuevoUsuario.Id)
 		return nil, helpers.NuevoError(http.StatusBadGateway, "No se pudo completar el registro, intenta de nuevo")
 	}
+
+	// La verificacion solo se gasta cuando el usuario queda creado
+	consumirCorreoVerificado(email)
 
 	return map[string]interface{}{
 		"mensaje": "Correo verificado y usuario registrado. Inicia sesion para recibir tu codigo de acceso.",
