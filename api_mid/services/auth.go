@@ -503,10 +503,6 @@ func Registrar(datos models.DatosRegistro) (map[string]interface{}, error) {
 		return nil, err
 	}
 
-	if !correoVerificado(email) {
-		return nil, helpers.NuevoError(http.StatusForbidden, "Verifica tu correo antes de registrarte. Solicita y confirma el codigo primero.")
-	}
-
 	if !datos.AceptaTerminos {
 		return nil, helpers.NuevoError(http.StatusBadRequest, "Debes aceptar los terminos y condiciones")
 	}
@@ -550,13 +546,13 @@ func Registrar(datos models.DatosRegistro) (map[string]interface{}, error) {
 		return nil, helpers.NuevoError(http.StatusBadGateway, "No se pudo completar el registro, intenta de nuevo")
 	}
 
-	// La verificacion solo se gasta cuando el usuario queda creado
-	consumirCorreoVerificado(email)
-
-	return map[string]interface{}{
-		"mensaje": "Correo verificado y usuario registrado. Inicia sesion para recibir tu codigo de acceso.",
-		"email": email,
-	}, nil
+	// 5. Dejar la sesion iniciada (la pagina entra directo despues del registro)
+	sesion, err := sesionIniciada(nuevoUsuario)
+	if err != nil {
+		return nil, err
+	}
+	sesion["mensaje"] = "Usuario registrado"
+	return sesion, nil
 }
 
 // IniciarSesion (paso 1): valida correo y clave y envia el codigo al correo.
