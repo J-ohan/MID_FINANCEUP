@@ -126,6 +126,15 @@ func ConfirmarVerificacionCorreo(datos models.DatosVerificarCorreo) (map[string]
 	return map[string]interface{}{"mensaje": "Correo verificado", "email": email, "verificado": true}, nil
 }
 
+// correoVerificado dice si el correo fue verificado y sigue vigente, sin consumirlo.
+func correoVerificado(email string) bool {
+	mutexCodigosCorreo.Lock()
+	defer mutexCodigosCorreo.Unlock()
+
+	expira, existe := correosVerificados[email]
+	return existe && time.Now().Before(expira)
+}
+
 // consumirCorreoVerificado impide completar el registro si no se confirmo el codigo.
 func consumirCorreoVerificado(email string) bool {
 	mutexCodigosCorreo.Lock()
