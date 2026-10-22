@@ -47,7 +47,7 @@ func init() {
 	beego.Router("/v1/pqr", &controllers.SoporteController{}, "post:PostPqr")
 	beego.Router("/v1/pqr/usuario/:id", &controllers.SoporteController{}, "get:GetPqrUsuario")
 	beego.Router("/v1/pqr/radicado/:radicado", &controllers.SoporteController{}, "get:GetPqr")
-	beego.Router("/v1/pqr/:id/respuesta", &controllers.SoporteController{}, "post:PostRespuestaPqr")
+	beego.Router("/v1/admin/pqr/:id/respuesta", &controllers.SoporteController{}, "post:PostRespuestaPqrAdmin")
 	beego.Router("/v1/admin/pqr", &controllers.SoporteController{}, "get:GetPqrAdmin")
 
 	// Finanzas (crud_finanzas) - controladores en controllers/finanzas/

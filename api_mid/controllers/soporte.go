@@ -82,6 +82,30 @@ func (c *SoporteController) PostRespuestaPqr() {
 	helpers.Responder(&c.Controller, http.StatusCreated, resultado)
 }
 
+// PostRespuestaPqrAdmin permite que solo un administrador responda una PQR.
+// El filtro de autenticacion protege las rutas bajo /v1/admin/.
+func (c *SoporteController) PostRespuestaPqrAdmin() {
+	id, err := helpers.LeerId(&c.Controller)
+	if err != nil {
+		helpers.ResponderError(&c.Controller, err)
+		return
+	}
+
+	var datos models.DatosRespuestaPqr
+	if err := helpers.LeerBody(&c.Controller, &datos); err != nil {
+		helpers.ResponderError(&c.Controller, err)
+		return
+	}
+
+	resultado, err := services.ResponderPqr(id, datos, 0)
+	if err != nil {
+		helpers.ResponderError(&c.Controller, err)
+		return
+	}
+
+	helpers.Responder(&c.Controller, http.StatusCreated, resultado)
+}
+
 func (c *SoporteController) GetPqrAdmin() {
 
 	resultado, err := services.PqrAdmin()
