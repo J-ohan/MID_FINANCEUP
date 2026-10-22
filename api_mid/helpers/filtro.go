@@ -31,8 +31,6 @@ var rutasPublicas = map[string]bool{
 	"POST /v1/login/social":         true,
 	"POST /v1/recuperar-contrasena": true,
 	"PUT /v1/recuperar-contrasena":  true,
-	"POST /v1/verificar-correo":     true,
-	"PUT /v1/verificar-correo":      true,
 }
 
 // Catalogos publicos (solo lectura). Con ?usuario= si piden token.
