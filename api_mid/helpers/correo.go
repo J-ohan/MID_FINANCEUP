@@ -132,7 +132,7 @@ func leerCredenciales() (*oauth2.Config, error) {
 	return &oauth2.Config{
 		ClientID:     datos.ClientID,
 		ClientSecret: datos.ClientSecret,
-		RedirectURL:  datos.RedirectURIs[0],
+		RedirectURL:  "http://localhost:8085/oauth2callback",
 		Scopes:       []string{permisoEnviarGmail},
 		Endpoint:     oauth2.Endpoint{AuthURL: datos.AuthURI, TokenURL: datos.TokenURI},
 	}, nil

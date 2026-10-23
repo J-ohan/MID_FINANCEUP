@@ -144,12 +144,6 @@ type DatosReenviar struct {
 	IdUsuario int `json:"id_usuario"`
 }
 
-// DatosVerificarCorreo: POST /v1/verificar-correo (solo email) y PUT (email + codigo).
-type DatosVerificarCorreo struct {
-	Email  string `json:"email"`
-	Codigo string `json:"codigo"`
-}
-
 // DatosAdminUsuario: lo que manda el administrador.
 // PUT /v1/admin/usuarios/:id/rol    -> {"rol": "admin"}
 // PUT /v1/admin/usuarios/:id/estado -> {"estado": "suspendido", "motivo": "..."}
