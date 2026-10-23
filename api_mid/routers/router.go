@@ -34,6 +34,9 @@ func init() {
 	beego.Router("/v1/verificar-correo", &controllers.AuthController{}, "post:PostVerificarCorreo;put:PutVerificarCorreo")
 	beego.Router("/v1/perfil/:id", &controllers.AuthController{}, "get:GetPerfil")
 	beego.Router("/v1/perfil/:id/contrasena", &controllers.AuthController{}, "put:PutCambiarContrasena")
+	beego.Router("/v1/admin/usuarios", &controllers.AuthController{}, "get:GetAdminUsuarios")
+	beego.Router("/v1/admin/usuarios/:id/rol", &controllers.AuthController{}, "put:PutRolUsuario")
+	beego.Router("/v1/admin/usuarios/:id/estado", &controllers.AuthController{}, "put:PutEstadoUsuario")
 
 	// Finanzas (crud_finanzas)
 	beego.Router("/v1/resumen-financiero/:id", &controllers.FinanzasController{}, "get:GetResumenFinanciero")

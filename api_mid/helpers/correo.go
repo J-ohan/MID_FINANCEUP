@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"mime"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 
@@ -159,15 +160,24 @@ func autorizarEnConsola(configuracion *oauth2.Config) (*oauth2.Token, error) {
 
 	fmt.Println("==================== AUTORIZAR GMAIL ====================")
 	fmt.Println("1. Abre este enlace en el navegador y acepta los permisos:")
-	fmt.Println(configuracion.AuthCodeURL("financeup", oauth2.AccessTypeOffline))
-	fmt.Println("2. Copia el codigo (parametro \"code\" de la direccion) y pegalo aqui:")
+	fmt.Println(configuracion.AuthCodeURL("financeup", oauth2.AccessTypeOffline, oauth2.ApprovalForce))
+	fmt.Println("2. Google te lleva a una pagina que no carga (es normal).")
+	fmt.Println("   Copia la direccion completa del navegador y pegala aqui:")
 
 	var codigo string
 	if _, err := fmt.Scan(&codigo); err != nil {
 		return nil, fmt.Errorf("no se pudo leer el codigo")
 	}
 
-	token, err := configuracion.Exchange(context.Background(), strings.TrimSpace(codigo))
+	// Sirve pegar solo el codigo o toda la direccion del navegador
+	codigo = strings.TrimSpace(codigo)
+	if direccion, err := url.Parse(codigo); err == nil && direccion.Query().Get("code") != "" {
+		codigo = direccion.Query().Get("code")
+	} else if limpio, err := url.QueryUnescape(codigo); err == nil {
+		codigo = limpio
+	}
+
+	token, err := configuracion.Exchange(context.Background(), codigo)
 	if err != nil {
 		return nil, fmt.Errorf("Google no acepto el codigo")
 	}

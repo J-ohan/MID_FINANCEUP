@@ -40,6 +40,10 @@ var (
 	// Sesiones cerradas con logout (se borran al reiniciar; igual vencen solas)
 	tokensRevocados = map[string]int64{}
 	mutexRevocados  sync.Mutex
+
+	// Usuarios a los que un admin les cambio el rol o el estado:
+	// sus tokens creados hasta esa hora ya no sirven
+	sesionesCerradasDesde = map[int]int64{}
 )
 
 // CargarSeguridad lee JWT_SECRETO (minimo 32 caracteres). Se llama en main.go.
@@ -124,9 +128,10 @@ func LeerToken(token string) (DatosToken, error) {
 
 	mutexRevocados.Lock()
 	_, cerrado := tokensRevocados[datos.Id]
+	desde, cerradoPorAdmin := sesionesCerradasDesde[datos.IdUsuario]
 	mutexRevocados.Unlock()
 
-	if cerrado {
+	if cerrado || (cerradoPorAdmin && datos.Emitido <= desde) {
 		return DatosToken{}, invalido
 	}
 
@@ -148,6 +153,24 @@ func RevocarToken(datos DatosToken) {
 	}
 
 	tokensRevocados[datos.Id] = datos.Expira
+}
+
+// CerrarSesionesDeUsuario invalida todos los tokens que ya tiene ese usuario
+// (cuando un admin le cambia el rol o lo suspende). Debe iniciar sesion de nuevo.
+func CerrarSesionesDeUsuario(idUsuario int) {
+
+	mutexRevocados.Lock()
+	defer mutexRevocados.Unlock()
+
+	// De paso se borran los de hace mas de 8 horas (esos tokens ya vencieron)
+	ahora := time.Now().UTC().Unix()
+	for id, desde := range sesionesCerradasDesde {
+		if ahora-desde > int64(DuracionToken.Seconds()) {
+			delete(sesionesCerradasDesde, id)
+		}
+	}
+
+	sesionesCerradasDesde[idUsuario] = ahora
 }
 
 func codificar(datos []byte) string {
