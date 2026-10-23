@@ -63,6 +63,12 @@ func FiltroAutenticacion(ctx *context.Context) {
 		return
 	}
 
+	// El token temporal del login no sirve para entrar a las demas rutas
+	if datos.Rol == RolVerificacion {
+		responderFiltro(ctx, NuevoError(http.StatusUnauthorized, "La sesion no es valida. Inicia sesion de nuevo."))
+		return
+	}
+
 	// Para que los controladores sepan quien es
 	ctx.Input.SetData("token", datos)
 
@@ -141,4 +147,21 @@ func IdUsuarioDeLaSesion(c *beego.Controller) int {
 func TokenDeLaSesion(c *beego.Controller) (DatosToken, bool) {
 	datos, ok := c.Ctx.Input.GetData("token").(DatosToken)
 	return datos, ok
+}
+
+// EsAdmin dice si quien hace la peticion es administrador.
+func EsAdmin(c *beego.Controller) bool {
+	datos, ok := TokenDeLaSesion(c)
+	return ok && datos.Rol == "admin"
+}
+
+// DuenoQuePide devuelve el id del usuario de la sesion para revisar que
+// los datos sean suyos, o 0 si es admin (puede ver los de todos).
+func DuenoQuePide(c *beego.Controller) int {
+
+	if EsAdmin(c) {
+		return 0
+	}
+
+	return IdUsuarioDeLaSesion(c)
 }

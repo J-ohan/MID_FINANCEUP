@@ -4,10 +4,11 @@ import (
 	"net/http"
 
 	"api_mid_financeup/helpers"
+	"api_mid_financeup/services/finanzas"
 )
 
 // ============================================================
-// SERVICE GENERAL
+// SERVICE GENERAL (lo usan todos para probar)
 // ============================================================
 
 // EstadoCruds intenta llamar a los 5 CRUD y dice cuales estan encendidos.
@@ -39,12 +40,9 @@ func EstadoCruds() map[string]string {
 	return estado
 }
 
-// Dashboard junta en una sola respuesta: perfil, resumen financiero,
-// progreso, solicitudes de credito y PQR. Usa los services de cada
-// modulo; si uno falla agrega un aviso y sigue con los demas.
+// Dashboard junta perfil, resumen financiero, progreso, solicitudes y PQR.
 func Dashboard(idUsuario int) (map[string]interface{}, error) {
 
-	// 1. Sin perfil no hay dashboard (el usuario no existe)
 	perfil, err := ObtenerPerfil(idUsuario)
 
 	if err != nil {
@@ -54,8 +52,7 @@ func Dashboard(idUsuario int) (map[string]interface{}, error) {
 	dashboard := map[string]interface{}{"perfil": perfil}
 	avisos := []string{}
 
-	// 2. Las demas secciones
-	if datos, err := ResumenFinanciero(idUsuario); err == nil {
+	if datos, err := finanzas.ResumenFinanciero(idUsuario); err == nil {
 		dashboard["finanzas"] = datos
 	} else {
 		avisos = append(avisos, "finanzas: "+err.Error())

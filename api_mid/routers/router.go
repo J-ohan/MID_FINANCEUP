@@ -7,19 +7,13 @@ package routers
 
 import (
 	"api_mid_financeup/controllers"
+	"api_mid_financeup/controllers/finanzas"
 
 	beego "github.com/beego/beego/v2/server/web"
 )
 
-// Cada linea dice: cuando llegue esta RUTA con este METODO,
-// ejecutar esta FUNCION del controlador.
-//
-// Aqui solo estan las acciones que necesitan logica (unir tablas,
-// validar, calcular, cifrar). Las operaciones sencillas de una sola
-// tabla (crear, editar o borrar un registro) la pagina las hace
-// directo en el CRUD de cada modulo.
 func init() {
-	// General
+	// General (para probar que los CRUD esten encendidos)
 	beego.Router("/v1/estado", &controllers.GeneralController{}, "get:Estado")
 	beego.Router("/v1/dashboard/:id", &controllers.GeneralController{}, "get:GetDashboard")
 
@@ -36,15 +30,6 @@ func init() {
 	beego.Router("/v1/admin/usuarios", &controllers.AuthController{}, "get:GetAdminUsuarios")
 	beego.Router("/v1/admin/usuarios/:id/rol", &controllers.AuthController{}, "put:PutRolUsuario")
 	beego.Router("/v1/admin/usuarios/:id/estado", &controllers.AuthController{}, "put:PutEstadoUsuario")
-
-	// Finanzas (crud_finanzas)
-	beego.Router("/v1/resumen-financiero/:id", &controllers.FinanzasController{}, "get:GetResumenFinanciero")
-	beego.Router("/v1/movimientos/usuario/:id", &controllers.FinanzasController{}, "get:GetMovimientos")
-	beego.Router("/v1/movimientos/importar", &controllers.FinanzasController{}, "post:PostImportarMovimientos")
-	beego.Router("/v1/metas/usuario/:id", &controllers.FinanzasController{}, "get:GetMetas")
-	beego.Router("/v1/metas/:id/abono", &controllers.FinanzasController{}, "put:PutAbonoMeta")
-	beego.Router("/v1/inversiones/usuario/:id", &controllers.FinanzasController{}, "get:GetInversiones")
-	beego.Router("/v1/admin/finanzas", &controllers.FinanzasController{}, "get:GetAdminFinanzas")
 
 	// Educacion (crud_educacion)
 	beego.Router("/v1/cursos", &controllers.EducacionController{}, "get:GetCursos")
@@ -67,4 +52,18 @@ func init() {
 	beego.Router("/v1/pqr/radicado/:radicado", &controllers.SoporteController{}, "get:GetPqr")
 	beego.Router("/v1/pqr/:id/respuesta", &controllers.SoporteController{}, "post:PostRespuestaPqr")
 	beego.Router("/v1/admin/pqr", &controllers.SoporteController{}, "get:GetPqrAdmin")
+
+	// Finanzas (crud_finanzas) - controladores en controllers/finanzas/
+	// Crear, editar o borrar movimientos, metas e inversiones, y la lista
+	// de categorias, la pagina los hace directo en crud_finanzas (8082).
+	beego.Router("/v1/resumen-financiero/:id", &finanzas.FinanzasController{}, "get:GetResumenFinanciero")
+	beego.Router("/v1/movimientos/usuario/:id", &finanzas.FinanzasController{}, "get:GetMovimientos")
+	beego.Router("/v1/movimientos/usuario/:id/exportar", &finanzas.FinanzasController{}, "get:GetExportarMovimientos")
+	beego.Router("/v1/movimientos/importar", &finanzas.FinanzasController{}, "post:PostImportarMovimientos")
+	beego.Router("/v1/metas/usuario/:id", &finanzas.FinanzasController{}, "get:GetMetas")
+	beego.Router("/v1/metas/:id/abono", &finanzas.FinanzasController{}, "put:PutAbonoMeta")
+	beego.Router("/v1/inversiones/usuario/:id", &finanzas.FinanzasController{}, "get:GetInversiones")
+	beego.Router("/v1/inversiones/usuario/:id/exportar", &finanzas.FinanzasController{}, "get:GetExportarInversiones")
+	beego.Router("/v1/admin/finanzas", &finanzas.FinanzasController{}, "get:GetAdminFinanzas")
+	beego.Router("/v1/admin/libro-mayor", &finanzas.FinanzasController{}, "get:GetAdminLibroMayor")
 }

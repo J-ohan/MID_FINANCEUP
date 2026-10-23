@@ -10,14 +10,6 @@ import (
 	"api_mid_financeup/models"
 )
 
-// ============================================================
-// SERVICE DE SOPORTE (crud_soporte)
-// Aqui esta la logica: radicar PQR, unirla con su estado,
-// respuestas y adjuntos.
-// ============================================================
-
-// RegistrarActividad deja un registro en soporte.registro_actividad.
-// Si falla no detiene nada (es solo un historial).
 func RegistrarActividad(idUsuario int, tipo string, descripcion string, entidad string) {
 
 	actividad := models.RegistroActividad{
@@ -30,7 +22,6 @@ func RegistrarActividad(idUsuario int, tipo string, descripcion string, entidad 
 	helpers.Crear(helpers.UrlCrudSoporte+"/registro_actividad", actividad, nil)
 }
 
-// estadosPorId devuelve un mapa id -> nombre del estado.
 func estadosPorId() (map[int]string, error) {
 
 	var estados []models.EstadoPqr
@@ -47,7 +38,6 @@ func estadosPorId() (map[int]string, error) {
 	return nombres, nil
 }
 
-// buscarEstado busca un estado por su nombre (ej: "Abierta").
 func buscarEstado(nombre string) (models.EstadoPqr, bool) {
 
 	var estados []models.EstadoPqr
@@ -60,11 +50,6 @@ func buscarEstado(nombre string) (models.EstadoPqr, bool) {
 	return estados[0], true
 }
 
-// ------------------------------------------------------------
-// Funciones que usan los controladores
-// ------------------------------------------------------------
-
-// RadicarPqr: guarda la PQR en estado "Abierta" con radicado y adjuntos.
 func RadicarPqr(datos models.DatosPqr) (map[string]interface{}, error) {
 
 	// 1. Validar
@@ -91,7 +76,6 @@ func RadicarPqr(datos models.DatosPqr) (map[string]interface{}, error) {
 		return nil, helpers.NuevoError(http.StatusInternalServerError, "No existe el estado Abierta en la base de datos")
 	}
 
-	// 3. Guardar la PQR (radicado: PQR- + fecha y hora, ej: PQR-20261009-153045)
 	pqr := models.Pqr{
 		IdUsuario:   datos.IdUsuario,
 		Radicado:    "PQR-" + time.Now().Format("20060102-150405"),
@@ -108,7 +92,6 @@ func RadicarPqr(datos models.DatosPqr) (map[string]interface{}, error) {
 		return nil, err
 	}
 
-	// 4. Guardar los adjuntos (nombre y ruta; el archivo lo sube la pagina)
 	adjuntosGuardados := 0
 
 	for _, archivo := range datos.Adjuntos {
@@ -127,7 +110,6 @@ func RadicarPqr(datos models.DatosPqr) (map[string]interface{}, error) {
 		}
 	}
 
-	// 5. Dejar registro de la actividad
 	RegistrarActividad(datos.IdUsuario, "CREAR_PQR", "Se radico la PQR "+pqr.Radicado, "soporte.pqr")
 
 	return map[string]interface{}{
@@ -141,7 +123,6 @@ func RadicarPqr(datos models.DatosPqr) (map[string]interface{}, error) {
 	}, nil
 }
 
-// PqrUsuario: PQR de un usuario con el nombre de su estado.
 func PqrUsuario(idUsuario int) ([]map[string]interface{}, error) {
 
 	var pqrs []models.Pqr
@@ -176,8 +157,7 @@ func PqrUsuario(idUsuario int) ([]map[string]interface{}, error) {
 	return lista, nil
 }
 
-// VerPqr: una PQR por su radicado, con estado, respuestas y adjuntos.
-func VerPqr(radicado string) (map[string]interface{}, error) {
+func VerPqr(radicado string, idUsuario int) (map[string]interface{}, error) {
 
 	// 1. Buscar la PQR
 	var pqrs []models.Pqr
@@ -186,7 +166,8 @@ func VerPqr(radicado string) (map[string]interface{}, error) {
 		return nil, err
 	}
 
-	if len(pqrs) == 0 {
+	// Si la PQR es de otro usuario se responde como si no existiera
+	if len(pqrs) == 0 || (idUsuario > 0 && pqrs[0].IdUsuario != idUsuario) {
 		return nil, helpers.NuevoError(http.StatusNotFound, "No existe una PQR con ese radicado")
 	}
 
@@ -240,8 +221,9 @@ func VerPqr(radicado string) (map[string]interface{}, error) {
 	}, nil
 }
 
-// ResponderPqr: guarda una respuesta y (si llega) cambia estado y progreso.
-func ResponderPqr(idPqr int, datos models.DatosRespuestaPqr) (map[string]interface{}, error) {
+// idUsuario > 0 es el dueno de la PQR (no admin): puede escribir, pero no
+// cambiar el estado ni el progreso.
+func ResponderPqr(idPqr int, datos models.DatosRespuestaPqr, idUsuario int) (map[string]interface{}, error) {
 
 	if datos.Mensaje == "" {
 		return nil, helpers.NuevoError(http.StatusBadRequest, "El mensaje es obligatorio")
@@ -257,6 +239,16 @@ func ResponderPqr(idPqr int, datos models.DatosRespuestaPqr) (map[string]interfa
 
 	if err := helpers.ConsultarUno(direccion, &pqr, "La PQR no existe"); err != nil {
 		return nil, err
+	}
+
+	if idUsuario > 0 {
+		if pqr.IdUsuario != idUsuario {
+			return nil, helpers.NuevoError(http.StatusNotFound, "La PQR no existe")
+		}
+		datos.IdUsuario = idUsuario
+		datos.Autor = "Usuario"
+		datos.Estado = ""
+		datos.Progreso = 0
 	}
 
 	// 2. Guardar la respuesta
