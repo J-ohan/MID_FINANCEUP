@@ -149,3 +149,12 @@ type DatosVerificarCorreo struct {
 	Email  string `json:"email"`
 	Codigo string `json:"codigo"`
 }
+
+// DatosAdminUsuario: lo que manda el administrador.
+// PUT /v1/admin/usuarios/:id/rol    -> {"rol": "admin"}
+// PUT /v1/admin/usuarios/:id/estado -> {"estado": "suspendido", "motivo": "..."}
+type DatosAdminUsuario struct {
+	Rol    string `json:"rol"`
+	Estado string `json:"estado"`
+	Motivo string `json:"motivo"`
+}
