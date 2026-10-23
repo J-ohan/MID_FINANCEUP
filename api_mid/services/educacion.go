@@ -9,6 +9,12 @@ import (
 	"api_mid_financeup/models"
 )
 
+// ============================================================
+// SERVICE DE EDUCACION (crud_educacion)
+// Aqui esta la logica: catalogo, avance de lecciones,
+// porcentaje del curso y certificado.
+// ============================================================
+
 // buscarCurso trae un curso (modulo_educativo) por su id.
 func buscarCurso(id int) (models.ModuloEducativo, error) {
 	var curso models.ModuloEducativo

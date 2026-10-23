@@ -6,6 +6,7 @@ require (
 	github.com/beego/beego/v2 v2.3.10
 	github.com/joho/godotenv v1.5.1
 	golang.org/x/crypto v0.57.0
+	golang.org/x/oauth2 v0.37.0
 )
 
 require (
