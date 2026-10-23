@@ -7,11 +7,9 @@ import (
 	"net/http"
 )
 
-// ============================================================
 // Funciones para hablar con los CRUD.
 // Todas hacen lo mismo que el ejemplo: llamar por HTTP,
 // leer la respuesta y convertir el JSON a una estructura.
-// ============================================================
 
 // ConsultarUno trae UN registro (GET /v1/tabla/5).
 // Si el CRUD no responde: error 502.
@@ -37,7 +35,8 @@ func ConsultarUno(url string, destino interface{}, mensajeNoExiste string) error
 
 // ConsultarLista trae una LISTA (GET /v1/tabla?query=...).
 // Si el CRUD no responde: error 502.
-// Si no hay datos, la lista queda vacia (no es error).
+// Si no hay datos, la lista queda vacia (no es error)
+
 func ConsultarLista(url string, destino interface{}) error {
 
 	response, err := http.Get(url)
@@ -58,7 +57,8 @@ func ConsultarLista(url string, destino interface{}) error {
 
 // Crear guarda un registro nuevo (POST /v1/tabla).
 // El CRUD responde 201 y el registro creado (con su Id), que
-// se guarda en "respuesta". Si no se necesita, se pasa nil.
+// se guarda en "respuesta". Si no se necesita, se pasa nil
+
 func Crear(url string, datos interface{}, respuesta interface{}) error {
 
 	jsonDatos, _ := json.Marshal(datos)

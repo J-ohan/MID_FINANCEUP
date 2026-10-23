@@ -24,6 +24,13 @@ import (
 // DuracionToken es cuanto dura una sesion.
 const DuracionToken = 8 * time.Hour
 
+// Token temporal del login: se entrega despues de correo y clave, y solo
+// sirve para verificar o reenviar el codigo (el filtro no lo deja pasar a mas).
+const (
+	RolVerificacion           = "verificacion_2fa"
+	DuracionTokenVerificacion = 10 * time.Minute
+)
+
 // DatosToken es lo que va guardado dentro del token.
 type DatosToken struct {
 	IdUsuario int    `json:"sub"`
@@ -62,8 +69,29 @@ func CargarSeguridad() {
 	})
 }
 
-// CrearToken arma y firma el token de un usuario.
+// CrearToken arma el token de la sesion (dura 8 horas).
 func CrearToken(idUsuario int, rol string) (string, error) {
+	return crearTokenCon(idUsuario, rol, DuracionToken)
+}
+
+// CrearTokenVerificacion arma el token temporal del paso 2 del login.
+func CrearTokenVerificacion(idUsuario int) (string, error) {
+	return crearTokenCon(idUsuario, RolVerificacion, DuracionTokenVerificacion)
+}
+
+// LeerTokenVerificacion revisa el token temporal y devuelve el id del usuario.
+func LeerTokenVerificacion(token string) (int, error) {
+
+	datos, err := LeerToken(token)
+	if err != nil || datos.Rol != RolVerificacion {
+		return 0, NuevoError(http.StatusUnauthorized, "Inicia sesion de nuevo para recibir un codigo")
+	}
+
+	return datos.IdUsuario, nil
+}
+
+// crearTokenCon arma y firma un token con el rol y la duracion que se pidan.
+func crearTokenCon(idUsuario int, rol string, duracion time.Duration) (string, error) {
 
 	CargarSeguridad()
 
@@ -76,7 +104,7 @@ func CrearToken(idUsuario int, rol string) (string, error) {
 		IdUsuario: idUsuario,
 		Rol:       rol,
 		Emitido:   ahora.Unix(),
-		Expira:    ahora.Add(DuracionToken).Unix(),
+		Expira:    ahora.Add(duracion).Unix(),
 		Id:        hex.EncodeToString(idUnico),
 	})
 	if err != nil {

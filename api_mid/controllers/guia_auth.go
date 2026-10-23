@@ -16,10 +16,12 @@ package controllers
 //   2. Encender el MID desde la carpeta api_mid:  go run .
 //      No debe salir el aviso de JWT_SECRETO (llenarlo en MID_FINANCEUP/.env).
 //   3. En Postman crear un Environment con:  url = http://localhost:8080/v1
-//      y token (vacio). En la coleccion: Authorization -> Bearer Token -> {{token}}
-//   4. En el paso 1 y el paso 3, en Scripts -> Post-response, pegar:
+//      token y token_verificacion (vacios).
+//      En la coleccion: Authorization -> Bearer Token -> {{token}}
+//   4. En los pasos 1, 2 y 3, en Scripts -> Post-response, pegar:
 //        const r = pm.response.json();
 //        if (r.token) pm.environment.set("token", r.token);
+//        if (r.token_verificacion) pm.environment.set("token_verificacion", r.token_verificacion);
 //   5. Los usuarios de prueba de la base tienen correos falsos (@email.com):
 //      el codigo nunca les llega. Usar un correo real (registrarse en el paso 1
 //      o cambiar el correo de uno en pgAdmin). Su clave es Financeup2026*
@@ -68,14 +70,16 @@ package controllers
 //   POST /v1/login   (sin token)
 //   Body:
 //     { "email": "laura.gomez@email.com", "contrasena": "Financeup2026" }
-//   Respuesta 200 (guardar el id_usuario para el paso 3):
+//   Respuesta 200 (guardar el token_verificacion para el paso 3):
 //     { "id_usuario": 7, "mensaje": "Te enviamos un codigo de verificacion a tu correo",
-//       "requiere_codigo": true }
+//       "requiere_codigo": true, "token_verificacion": "eyJhbGciOiJIUzI1NiIs..." }
+//   El token_verificacion dura 10 minutos y SOLO sirve para los pasos 3 y 3b:
+//   con el no se puede entrar a ninguna otra ruta.
 //
 // PASO 3. Codigo del login (entrega el token de la sesion, dura 8 horas)
 //   POST /v1/login/verificar   (sin token)
-//   Body:
-//     { "id_usuario": 7, "codigo": "654321" }
+//   Body (el usuario sale del token_verificacion, ya no se manda id_usuario):
+//     { "token_verificacion": "{{token_verificacion}}", "codigo": "654321" }
 //   Respuesta 200:
 //     {
 //       "mensaje": "Inicio de sesion exitoso",
@@ -93,7 +97,7 @@ package controllers
 // PASO 3b. Reenviar el codigo (solo si no llego; esperar 1 minuto entre codigos)
 //   POST /v1/login/reenviar   (sin token)
 //   Body:
-//     { "id_usuario": 7 }
+//     { "token_verificacion": "{{token_verificacion}}" }
 //   Respuesta 200:
 //     { "mensaje": "Te enviamos un codigo nuevo a tu correo", "id_usuario": 7 }
 //
@@ -203,6 +207,8 @@ package controllers
 //   400  "Ese rol no existe" / "El estado debe ser activo, inactivo o suspendido"
 //   401  "Correo o contrasena incorrectos"
 //   401  "El codigo no es correcto" / "El codigo vencio. Pide uno nuevo."
+//   401  "Inicia sesion de nuevo para recibir un codigo" (pasos 3 y 3b sin
+//        token_verificacion, o ya vencio: volver al paso 2)
 //   401  "La sesion no es valida" (sin token, vencido, despues del logout
 //        o despues de que un admin le cambio el rol o el estado)
 //   403  "No puedes ver ni cambiar datos de otro usuario"
