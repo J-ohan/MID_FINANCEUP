@@ -15,6 +15,7 @@ func main() {
 	godotenv.Load("../.env")
 	helpers.CargarUrls()
 	helpers.CargarSeguridad() // lee JWT_SECRETO para firmar los tokens de sesion
+	helpers.CargarCorreo()    // conecta con Gmail (credentials/credentials.json y token/token.json)
 
 	if beego.BConfig.RunMode == "dev" {
 		beego.BConfig.WebConfig.DirectoryIndex = true

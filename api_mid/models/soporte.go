@@ -2,6 +2,10 @@ package models
 
 import "time"
 
+// ------------------------------------------------------------
+// Tablas de crud_soporte (como llegan del CRUD)
+// ------------------------------------------------------------
+
 type EstadoPqr struct {
 	Id     int    `json:"Id"`
 	Nombre string `json:"Nombre"`
@@ -51,6 +55,10 @@ type RegistroActividad struct {
 	Descripcion     string `json:"Descripcion"`
 	EntidadAfectada string `json:"EntidadAfectada"`
 }
+
+// ------------------------------------------------------------
+// Datos que manda la pagina
+// ------------------------------------------------------------
 
 type ArchivoAdjunto struct {
 	NombreArchivo string `json:"nombre_archivo"`

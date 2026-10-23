@@ -2,6 +2,9 @@ package models
 
 import "time"
 
+// ------------------------------------------------------------
+// Tablas de crud_auth (como llegan del CRUD)
+// ------------------------------------------------------------
 
 type Usuario struct {
 	Id                      int       `json:"Id"`
@@ -88,8 +91,9 @@ type AuditoriaLogin struct {
 	EstadoEvento string `json:"EstadoEvento"`
 }
 
-
+// ------------------------------------------------------------
 // Datos que manda la pagina
+// ------------------------------------------------------------
 
 type DatosRegistro struct {
 	Nombre          string `json:"nombre"`
@@ -111,10 +115,12 @@ type DatosLogin struct {
 	Navegador  string `json:"-"`
 }
 
+// DatosCodigo: POST /v1/login/verificar. El id del usuario no lo manda la
+// pagina: sale del token_verificacion que entrega el paso 1 del login.
 type DatosCodigo struct {
-	IdUsuario         int    `json:"id_usuario"`
-	Codigo            string `json:"codigo"`
 	TokenVerificacion string `json:"token_verificacion"`
+	Codigo            string `json:"codigo"`
+	IdUsuario         int    `json:"-"`
 }
 
 // DatosLoginSocial: la pagina solo manda el proveedor y el token que le
@@ -138,6 +144,15 @@ type DatosContrasena struct {
 
 // DatosReenviar: POST /v1/login/reenviar (pedir otro codigo del login).
 type DatosReenviar struct {
-	IdUsuario         int    `json:"id_usuario"`
 	TokenVerificacion string `json:"token_verificacion"`
+	IdUsuario         int    `json:"-"`
+}
+
+// DatosAdminUsuario: lo que manda el administrador.
+// PUT /v1/admin/usuarios/:id/rol    -> {"rol": "admin"}
+// PUT /v1/admin/usuarios/:id/estado -> {"estado": "suspendido", "motivo": "..."}
+type DatosAdminUsuario struct {
+	Rol    string `json:"rol"`
+	Estado string `json:"estado"`
+	Motivo string `json:"motivo"`
 }
