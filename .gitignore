@@ -9,3 +9,4 @@ api_mid/swagger/
 # Archivos de Gmail (son secretos, nunca se suben)
 api_mid/credentials/
 api_mid/token/
+.env.example

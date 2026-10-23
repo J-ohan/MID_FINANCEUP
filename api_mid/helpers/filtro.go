@@ -12,10 +12,13 @@ import (
 )
 
 // ============================================================
-// FILTRO DE AUTENTICACION (se activa en main.go)
-//  1. Las rutas publicas pasan sin token.
-//  2. Las demas piden "Authorization: Bearer <token>" (si no: 401).
-//  3. Cada usuario solo ve SUS datos (si no: 403). El rol "admin" ve todo.
+// FILTRO DE AUTENTICACION
+// Corre ANTES de cada ruta (se activa en main.go). Hace 3 cosas:
+//   1. Deja pasar sin token las rutas publicas (login, registro...).
+//   2. En las demas exige "Authorization: Bearer <token>" (si no, 401).
+//   3. Revisa que el usuario solo pida SUS datos: si el id de la URL,
+//      el ?usuario= o el "id_usuario" del body no es el suyo, responde 403.
+//      El rol "admin" puede ver los datos de todos.
 // ============================================================
 
 // Rutas que no necesitan token ("METODO /ruta").
@@ -28,8 +31,6 @@ var rutasPublicas = map[string]bool{
 	"POST /v1/login/social":         true,
 	"POST /v1/recuperar-contrasena": true,
 	"PUT /v1/recuperar-contrasena":  true,
-	"POST /v1/verificar-correo":     true,
-	"PUT /v1/verificar-correo":      true,
 }
 
 // Catalogos publicos (solo lectura). Con ?usuario= si piden token.
@@ -43,15 +44,15 @@ var rutasConIdUsuario = []*regexp.Regexp{
 
 // FiltroAutenticacion revisa el token y los permisos antes de cada ruta.
 func FiltroAutenticacion(ctx *context.Context) {
+	metodo := strings.ToUpper(ctx.Input.Method())
+	ruta := "/" + strings.Trim(strings.TrimSpace(ctx.Input.URL()), "/")
 
-	metodo := ctx.Input.Method()
-	ruta := strings.TrimRight(ctx.Input.URL(), "/")
-
-	// OPTIONS lo manda el navegador (CORS) y no trae token
+	// OPTIONS y rutas públicas no necesitan token.
 	if metodo == http.MethodOptions || rutasPublicas[metodo+" "+ruta] {
 		return
 	}
 
+	// Los catalogos de cursos y ofertas se ven sin iniciar sesion
 	if metodo == http.MethodGet && catalogoPublico.MatchString(ruta) && ctx.Input.Query("usuario") == "" {
 		return
 	}
@@ -101,9 +102,17 @@ func idsPedidos(ctx *context.Context, ruta string) []int {
 
 	var body map[string]interface{}
 	if json.Unmarshal(ctx.Input.RequestBody, &body) == nil {
-		if valor, existe := body["id_usuario"]; existe {
-			id, _ := valor.(float64)
-			ids = append(ids, int(id))
+		// Go lee "ID_USUARIO" igual que "id_usuario", asi que se revisan todas las variantes
+		for llave, valor := range body {
+			if !strings.EqualFold(llave, "id_usuario") {
+				continue
+			}
+			numero, esNumero := valor.(float64)
+			if !esNumero || numero != float64(int(numero)) {
+				ids = append(ids, -1)
+				continue
+			}
+			ids = append(ids, int(numero))
 		}
 	}
 

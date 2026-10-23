@@ -427,7 +427,6 @@ func sesionIniciada(usuario models.Usuario) (map[string]interface{}, error) {
 		"apellido":   usuario.Apellido,
 		"email":      usuario.Email,
 		"rol":        rol,
-		"roles":      roles,
 		"estado":     usuario.Estado,
 	}, nil
 }
@@ -480,7 +479,6 @@ func ObtenerPerfil(id int) (map[string]interface{}, error) {
 		"fecha_nacimiento": fechaNacimiento,
 		"estado":           usuario.Estado,
 		"rol":              rolPrincipal(roles),
-		"roles":            roles,
 	}, nil
 }
 
@@ -548,14 +546,12 @@ func Registrar(datos models.DatosRegistro) (map[string]interface{}, error) {
 		return nil, helpers.NuevoError(http.StatusBadGateway, "No se pudo completar el registro, intenta de nuevo")
 	}
 
-	// 5. Sesion iniciada
+	// 5. Dejar la sesion iniciada (la pagina entra directo despues del registro)
 	sesion, err := sesionIniciada(nuevoUsuario)
 	if err != nil {
 		return nil, err
 	}
-
 	sesion["mensaje"] = "Usuario registrado"
-
 	return sesion, nil
 }
 
