@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	"html"
 	"net/http"
 	"net/mail"
 	"net/url"
@@ -286,8 +287,33 @@ func crearCodigo(usuario models.Usuario, proposito string, minutos int) error {
 		asunto, motivo = "Codigo para recuperar tu contrasena de FinanceUp", "cambiar tu contrasena"
 	}
 
-	mensaje := fmt.Sprintf("Hola %s,\n\nTu codigo para %s es: %s\n\nVence en %d minutos y solo sirve una vez.\nSi no fuiste tu, ignora este correo y cambia tu contrasena.\n\nFinanceUp",
-		usuario.Nombre, motivo, codigo, minutos)
+	mensaje := fmt.Sprintf(`<!doctype html>
+<html lang="es">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>FinanceUp</title></head>
+<body style="margin:0;padding:0;background-color:#f1f5f4;font-family:Arial,Helvetica,sans-serif;color:#18332f">
+  <table role="presentation" width="100%%" cellspacing="0" cellpadding="0" border="0" style="background-color:#f1f5f4;padding:32px 12px">
+    <tr><td align="center">
+      <table role="presentation" width="100%%" cellspacing="0" cellpadding="0" border="0" style="max-width:560px;background:#ffffff;border-radius:16px;overflow:hidden">
+        <tr><td style="background:#145c4b;padding:24px 32px">
+          <div style="font-size:23px;font-weight:bold;letter-spacing:-0.5px;color:#ffffff">Finance<span style="color:#8ee0bd">Up</span></div>
+          <div style="padding-top:5px;font-size:12px;color:#d5eee5">Tus finanzas, bajo control</div>
+        </td></tr>
+        <tr><td style="padding:32px">
+          <div style="display:inline-block;padding:7px 11px;border-radius:20px;background:#e9f6f0;color:#176b52;font-size:12px;font-weight:bold">VERIFICACIÓN DE SEGURIDAD</div>
+          <h1 style="margin:20px 0 12px;font-size:23px;line-height:1.3;color:#18332f">Hola %s</h1>
+          <p style="margin:0;font-size:15px;line-height:1.6;color:#52645f">Ingresa este código para %s en tu cuenta de FinanceUp:</p>
+          <table role="presentation" width="100%%" cellspacing="0" cellpadding="0" border="0" style="margin:24px 0">
+            <tr><td align="center" style="padding:20px 12px;background:#f0f8f4;border:1px solid #d8eee2;border-radius:12px;font-size:32px;font-weight:bold;letter-spacing:9px;color:#145c4b">%s</td></tr>
+          </table>
+          <p style="margin:0 0 12px;font-size:14px;line-height:1.6;color:#52645f">Este código vence en <strong style="color:#18332f">%d minutos</strong> y solo se puede usar una vez.</p>
+          <p style="margin:0;font-size:14px;line-height:1.6;color:#52645f">Si no solicitaste este código, puedes ignorar este mensaje. Por seguridad, nunca compartas tu código.</p>
+        </td></tr>
+        <tr><td style="padding:18px 32px;background:#f8faf9;border-top:1px solid #edf1ef;font-size:12px;line-height:1.5;color:#778681">Este es un mensaje automático de FinanceUp. Por favor, no respondas a este correo.</td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`, html.EscapeString(usuario.Nombre), html.EscapeString(motivo), html.EscapeString(codigo), minutos)
 
 	if err := helpers.EnviarCorreo(usuario.Email, asunto, mensaje); err != nil {
 		if nuevoCodigo.Id > 0 {
