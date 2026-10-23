@@ -184,7 +184,7 @@ func VerPqr(radicado string, idUsuario int) (map[string]interface{}, error) {
 	var respuestas []models.RespuestaPqr
 	var adjuntos []models.Adjunto
 
-	if err := helpers.ConsultarLista(fmt.Sprintf("%s/respuesta_pqr?query=id_pqr:%d,activo:true&sortby=Id&order=asc&limit=1000", helpers.UrlCrudSoporte, pqr.Id), &respuestas); err != nil {
+	if err := helpers.ConsultarLista(fmt.Sprintf("%s/respuesta_pqr?id_pqr=%d&activo=true", helpers.UrlCrudSoporte, pqr.Id), &respuestas); err != nil {
 		return nil, err
 	}
 
@@ -229,10 +229,6 @@ func ResponderPqr(idPqr int, datos models.DatosRespuestaPqr, idUsuario int) (map
 		return nil, helpers.NuevoError(http.StatusBadRequest, "El mensaje es obligatorio")
 	}
 
-	if datos.Autor == "" {
-		datos.Autor = "Usuario"
-	}
-
 	// 1. La PQR
 	var pqr models.Pqr
 	direccion := fmt.Sprintf("%s/pqr/%d", helpers.UrlCrudSoporte, idPqr)
@@ -249,6 +245,15 @@ func ResponderPqr(idPqr int, datos models.DatosRespuestaPqr, idUsuario int) (map
 		datos.Autor = "Usuario"
 		datos.Estado = ""
 		datos.Progreso = 0
+	} else {
+		// Las respuestas administrativas siempre se atribuyen al asesor,
+		// y se enlazan al usuario dueño de la PQR aunque el body lo omita.
+		datos.Autor = "Admin"
+		datos.IdUsuario = pqr.IdUsuario
+	}
+
+	if datos.Autor == "" {
+		datos.Autor = "Usuario"
 	}
 
 	// 2. Guardar la respuesta
