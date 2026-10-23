@@ -72,7 +72,7 @@ func EnviarCorreo(para string, asunto string, cuerpo string) error {
 		"To: " + para,
 		"Subject: " + mime.QEncoding.Encode("utf-8", asunto),
 		"MIME-Version: 1.0",
-		"Content-Type: text/plain; charset=\"UTF-8\"",
+		"Content-Type: text/html; charset=\"UTF-8\"",
 		"",
 		cuerpo,
 	}, "\r\n")
