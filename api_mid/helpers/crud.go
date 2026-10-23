@@ -7,11 +7,9 @@ import (
 	"net/http"
 )
 
-
 // Funciones para hablar con los CRUD.
 // Todas hacen lo mismo que el ejemplo: llamar por HTTP,
 // leer la respuesta y convertir el JSON a una estructura.
-
 
 // ConsultarUno trae UN registro (GET /v1/tabla/5).
 // Si el CRUD no responde: error 502.

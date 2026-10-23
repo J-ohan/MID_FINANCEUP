@@ -21,7 +21,7 @@ import (
 //      El rol "admin" puede ver los datos de todos.
 // ============================================================
 
-// rutasPublicas: "METODO /ruta" que no necesitan token.
+// Rutas que no necesitan token ("METODO /ruta").
 var rutasPublicas = map[string]bool{
 	"GET /v1/estado":                true,
 	"POST /v1/registro":             true,
@@ -33,41 +33,31 @@ var rutasPublicas = map[string]bool{
 	"PUT /v1/recuperar-contrasena":  true,
 }
 
-// Catalogos que se pueden ver sin iniciar sesion (solo lectura).
-// Si llevan ?usuario= (progreso de un usuario), si piden token.
+// Catalogos publicos (solo lectura). Con ?usuario= si piden token.
 var catalogoPublico = regexp.MustCompile(`^/v1/(cursos|ofertas)(/\d+)?$`)
 
-// Rutas donde el :id es el id de un USUARIO (no de una meta, curso, etc.)
+// Rutas donde el :id es el id de un USUARIO.
 var rutasConIdUsuario = []*regexp.Regexp{
-	regexp.MustCompile(`^/v1/(perfil|dashboard|resumen-financiero|progreso-educativo)/([^/]+)(/|$)`),
-	regexp.MustCompile(`^/v1/(movimientos|metas|inversiones|solicitud-credito|pqr)/usuario/([^/]+)(/|$)`),
+	regexp.MustCompile(`^/v1/(perfil|dashboard|resumen-financiero|progreso-educativo)/(\d+)(/|$)`),
+	regexp.MustCompile(`^/v1/(movimientos|metas|inversiones|solicitud-credito|pqr)/usuario/(\d+)(/|$)`),
 }
 
-// FiltroAutenticacion es el filtro que se registra en main.go.
+// FiltroAutenticacion revisa el token y los permisos antes de cada ruta.
 func FiltroAutenticacion(ctx *context.Context) {
+	metodo := strings.ToUpper(ctx.Input.Method())
+	ruta := "/" + strings.Trim(strings.TrimSpace(ctx.Input.URL()), "/")
 
-	metodo := ctx.Input.Method()
-	ruta := strings.TrimRight(ctx.Input.URL(), "/")
-
-	// Las peticiones OPTIONS son del navegador (CORS), no traen token
-	if metodo == http.MethodOptions {
+	// OPTIONS y rutas públicas no necesitan token.
+	if metodo == http.MethodOptions || rutasPublicas[metodo+" "+ruta] {
 		return
 	}
 
-	// 1. Rutas publicas
-	if rutasPublicas[metodo+" "+ruta] {
-		return
-	}
-
+	// Los catalogos de cursos y ofertas se ven sin iniciar sesion
 	if metodo == http.MethodGet && catalogoPublico.MatchString(ruta) && ctx.Input.Query("usuario") == "" {
 		return
 	}
 
-	// 2. Leer y revisar el token
-	token := strings.TrimPrefix(ctx.Input.Header("Authorization"), "Bearer ")
-
-	datos, err := LeerToken(token)
-
+	datos, err := LeerToken(strings.TrimPrefix(ctx.Input.Header("Authorization"), "Bearer "))
 	if err != nil {
 		responderFiltro(ctx, err)
 		return
@@ -79,10 +69,9 @@ func FiltroAutenticacion(ctx *context.Context) {
 		return
 	}
 
-	// Se guarda para que los controladores sepan quien es (IdUsuarioDeLaSesion)
+	// Para que los controladores sepan quien es
 	ctx.Input.SetData("token", datos)
 
-	// 3. Permisos
 	if strings.HasPrefix(ruta, "/v1/admin/") && datos.Rol != "admin" {
 		responderFiltro(ctx, NuevoError(http.StatusForbidden, "Solo un administrador puede ver esta informacion"))
 		return
@@ -92,7 +81,7 @@ func FiltroAutenticacion(ctx *context.Context) {
 		return
 	}
 
-	for _, id := range idsDeUsuarioPedidos(ctx, ruta) {
+	for _, id := range idsPedidos(ctx, ruta) {
 		if id != datos.IdUsuario {
 			responderFiltro(ctx, NuevoError(http.StatusForbidden, "No puedes ver ni cambiar datos de otro usuario"))
 			return
@@ -100,57 +89,46 @@ func FiltroAutenticacion(ctx *context.Context) {
 	}
 }
 
-// idsDeUsuarioPedidos busca de quien son los datos que se piden:
-// en la URL (/v1/perfil/5), en ?usuario=5 y en el "id_usuario" del body.
-func idsDeUsuarioPedidos(ctx *context.Context, ruta string) []int {
+// idsPedidos busca de quien son los datos: en la URL, en ?usuario= y en el "id_usuario" del body.
+func idsPedidos(ctx *context.Context, ruta string) []int {
 
 	ids := []int{}
 
 	for _, patron := range rutasConIdUsuario {
 		if partes := patron.FindStringSubmatch(ruta); partes != nil {
-			ids = append(ids, idDeTexto(partes[2]))
+			id, _ := strconv.Atoi(partes[2])
+			ids = append(ids, id)
 		}
 	}
 
 	if texto := ctx.Input.Query("usuario"); texto != "" {
-		ids = append(ids, idDeTexto(texto))
+		id, _ := strconv.Atoi(texto)
+		ids = append(ids, id)
 	}
 
 	var body map[string]interface{}
-
-	// Go acepta "ID_USUARIO" o "Id_Usuario" al leer el JSON, asi que se
-	// revisan todas las formas de escribir la llave
 	if json.Unmarshal(ctx.Input.RequestBody, &body) == nil {
+		// Go lee "ID_USUARIO" igual que "id_usuario", asi que se revisan todas las variantes
 		for llave, valor := range body {
-			if strings.EqualFold(llave, "id_usuario") {
-				id, esNumero := valor.(float64)
-				if !esNumero || id != float64(int(id)) {
-					id = -1
-				}
-				ids = append(ids, int(id))
+			if !strings.EqualFold(llave, "id_usuario") {
+				continue
 			}
+			numero, esNumero := valor.(float64)
+			if !esNumero || numero != float64(int(numero)) {
+				ids = append(ids, -1)
+				continue
+			}
+			ids = append(ids, int(numero))
 		}
 	}
 
 	return ids
 }
 
-// idDeTexto convierte el id; si no son solo numeros devuelve -1 (no es de nadie).
-func idDeTexto(texto string) int {
-
-	id, err := strconv.Atoi(texto)
-
-	if err != nil || !SoloNumeros(texto) {
-		return -1
-	}
-
-	return id
-}
-
+// responderFiltro corta la peticion y responde {"error": "..."} con su codigo.
 func responderFiltro(ctx *context.Context, err error) {
 
 	codigo := http.StatusUnauthorized
-
 	if errorApi, ok := err.(*ErrorApi); ok {
 		codigo = errorApi.Codigo
 	}
@@ -159,20 +137,21 @@ func responderFiltro(ctx *context.Context, err error) {
 	ctx.Output.JSON(map[string]interface{}{"error": err.Error()}, false, false)
 }
 
-// IdUsuarioDeLaSesion devuelve el id del usuario que inicio sesion
-// (lo dejo el filtro). Devuelve 0 si la ruta es publica.
+// IdUsuarioDeLaSesion devuelve el id del usuario del token (0 en rutas publicas).
 func IdUsuarioDeLaSesion(c *beego.Controller) int {
-
-	if datos, ok := c.Ctx.Input.GetData("token").(DatosToken); ok {
-		return datos.IdUsuario
-	}
-
-	return 0
+	datos, _ := TokenDeLaSesion(c)
+	return datos.IdUsuario
 }
 
-// EsAdmin dice si el usuario que inicio sesion es administrador.
-func EsAdmin(c *beego.Controller) bool {
+// TokenDeLaSesion devuelve los datos del token de la peticion.
+func TokenDeLaSesion(c *beego.Controller) (DatosToken, bool) {
 	datos, ok := c.Ctx.Input.GetData("token").(DatosToken)
+	return datos, ok
+}
+
+// EsAdmin dice si quien hace la peticion es administrador.
+func EsAdmin(c *beego.Controller) bool {
+	datos, ok := TokenDeLaSesion(c)
 	return ok && datos.Rol == "admin"
 }
 
@@ -185,10 +164,4 @@ func DuenoQuePide(c *beego.Controller) int {
 	}
 
 	return IdUsuarioDeLaSesion(c)
-}
-
-// TokenDeLaSesion devuelve los datos del token de la peticion (para el logout).
-func TokenDeLaSesion(c *beego.Controller) (DatosToken, bool) {
-	datos, ok := c.Ctx.Input.GetData("token").(DatosToken)
-	return datos, ok
 }
