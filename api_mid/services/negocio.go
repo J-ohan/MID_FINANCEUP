@@ -10,6 +10,12 @@ import (
 	"api_mid_financeup/models"
 )
 
+// ============================================================
+// SERVICE DE ALIANZAS (crud_negocio)
+// Aqui esta la logica: unir ofertas con su aliado y detalles,
+// validar la solicitud y calcular la cuota.
+// ============================================================
+
 // datosOferta es como la pagina muestra una oferta.
 func datosOferta(producto models.ProductoCrediticio, banco models.Banco, textos map[string][]string) map[string]interface{} {
 	return map[string]interface{}{

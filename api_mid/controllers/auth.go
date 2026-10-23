@@ -3,16 +3,19 @@ package controllers
 import (
 	"net/http"
 
+	"api_mid_financeup/helpers"
 	"api_mid_financeup/models"
 	"api_mid_financeup/services"
-	"api_mid_financeup/helpers"
-	
 
 	beego "github.com/beego/beego/v2/server/web"
 )
 
-
-type AuthController struct{
+// AuthController atiende las rutas de usuarios.
+// Cada funcion hace 3 cosas:
+//  1. leer lo que llega (id o JSON)
+//  2. llamar al service que hace el trabajo
+//  3. responder (el resultado o el error)
+type AuthController struct {
 	beego.Controller
 }
 
@@ -34,10 +37,7 @@ func (c *AuthController) GetPerfil() {
 	helpers.Responder(&c.Controller, http.StatusOK, perfil)
 }
 
-
-
-//Post v1/registro
-
+// POST /v1/registro
 func (c *AuthController) PostRegistro() {
 
 	var datos models.DatosRegistro
@@ -55,9 +55,7 @@ func (c *AuthController) PostRegistro() {
 	helpers.Responder(&c.Controller, http.StatusCreated, resultado)
 }
 
-
-//Post v1/login (correo y clave)
-
+// POST /v1/login  (paso 1: correo y clave)
 func (c *AuthController) PostLogin() {
 
 	var datos models.DatosLogin
@@ -89,9 +87,7 @@ func (c *AuthController) PostLogin() {
 	helpers.Responder(&c.Controller, http.StatusOK, resultado)
 }
 
-
-//Post v1/login/verificar (codigo de 6 digitos)
-
+// POST /v1/login/verificar  (paso 2: codigo de 6 numeros)
 func (c *AuthController) PostVerificarCodigo() {
 
 	var datos models.DatosCodigo
@@ -126,6 +122,7 @@ func (c *AuthController) PostReenviarCodigo() {
 		return
 	}
 
+	// El usuario sale del token del paso 1, no de lo que mande la pagina
 	idUsuario, err := helpers.LeerTokenVerificacion(datos.TokenVerificacion)
 	if err != nil {
 		helpers.ResponderError(&c.Controller, err)
@@ -179,8 +176,7 @@ func (c *AuthController) PostLoginSocial() {
 	helpers.Responder(&c.Controller, http.StatusOK, resultado)
 }
 
-//Post  v1/ recuperar-contrasena
-
+// POST /v1/recuperar-contrasena  (pide el codigo)
 func (c *AuthController) PostRecuperarContrasena() {
 
 	var datos models.DatosContrasena
@@ -198,9 +194,7 @@ func (c *AuthController) PostRecuperarContrasena() {
 	helpers.Responder(&c.Controller, http.StatusOK, resultado)
 }
 
-
-//Put v1/recuperar-contrasena (codigo + clave nueva)
-
+// PUT /v1/recuperar-contrasena  (codigo + clave nueva)
 func (c *AuthController) PutRestablecerContrasena() {
 
 	var datos models.DatosContrasena
@@ -222,7 +216,7 @@ func (c *AuthController) PutRestablecerContrasena() {
 	helpers.Responder(&c.Controller, http.StatusOK, resultado)
 }
 
-//Put v1/perfil/:id/contrasena
+// PUT /v1/perfil/:id/contrasena
 func (c *AuthController) PutCambiarContrasena() {
 
 	id, err := helpers.LeerId(&c.Controller)

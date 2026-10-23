@@ -27,6 +27,9 @@ func init() {
 	beego.Router("/v1/recuperar-contrasena", &controllers.AuthController{}, "post:PostRecuperarContrasena;put:PutRestablecerContrasena")
 	beego.Router("/v1/perfil/:id", &controllers.AuthController{}, "get:GetPerfil")
 	beego.Router("/v1/perfil/:id/contrasena", &controllers.AuthController{}, "put:PutCambiarContrasena")
+	beego.Router("/v1/admin/usuarios", &controllers.AuthController{}, "get:GetAdminUsuarios")
+	beego.Router("/v1/admin/usuarios/:id/rol", &controllers.AuthController{}, "put:PutRolUsuario")
+	beego.Router("/v1/admin/usuarios/:id/estado", &controllers.AuthController{}, "put:PutEstadoUsuario")
 
 	// Educacion (crud_educacion)
 	beego.Router("/v1/cursos", &controllers.EducacionController{}, "get:GetCursos")
