@@ -1,0 +1,158 @@
+package models
+
+import "time"
+
+// ------------------------------------------------------------
+// Tablas de crud_auth (como llegan del CRUD)
+// ------------------------------------------------------------
+
+type Usuario struct {
+	Id                      int       `json:"Id"`
+	TipoDocumento           *Ref      `json:"TipoDocumento"`
+	Nombre                  string    `json:"Nombre"`
+	Apellido                string    `json:"Apellido"`
+	Email                   string    `json:"Email"`
+	Telefono                string    `json:"Telefono"`
+	Cedula                  *string   `json:"Cedula"` // nil = sin cedula (se guarda NULL)
+	Ciudad                  string    `json:"Ciudad"`
+	Direccion               string    `json:"Direccion"`
+	FechaNacimiento         time.Time `json:"FechaNacimiento"`
+	AceptaTerminos          bool      `json:"AceptaTerminos"`
+	FechaAceptacionTerminos time.Time `json:"FechaAceptacionTerminos"`
+	Estado                  string    `json:"Estado"`
+	FechaRegistro           time.Time `json:"FechaRegistro"`
+	FechaUltimaSesion       time.Time `json:"FechaUltimaSesion"`
+	Activo                  bool      `json:"Activo"`
+	FechaCreacion           time.Time `json:"FechaCreacion"`
+	FechaModificacion       time.Time `json:"FechaModificacion"`
+}
+
+type Credencial struct {
+	Id                 int       `json:"Id"`
+	IdUsuario          *Ref      `json:"IdUsuario"`
+	ContrasenaHash     string    `json:"ContrasenaHash"`
+	Salt               string    `json:"Salt"`
+	Algoritmo          string    `json:"Algoritmo"`
+	FechaActualizacion time.Time `json:"FechaActualizacion"`
+	FechaUltimoCambio  time.Time `json:"FechaUltimoCambio"`
+	IntentosFallidos   int       `json:"IntentosFallidos"`
+	BloqueadoHasta     time.Time `json:"BloqueadoHasta"`
+	RequiereCambio     bool      `json:"RequiereCambio"`
+	Activo             bool      `json:"Activo"`
+	FechaCreacion      time.Time `json:"FechaCreacion"`
+	FechaModificacion  time.Time `json:"FechaModificacion"`
+}
+
+type CodigoVerificacion struct {
+	Id                int       `json:"Id"`
+	IdUsuario         *Ref      `json:"IdUsuario"`
+	Proposito         string    `json:"Proposito"`
+	Canal             string    `json:"Canal"`
+	CodigoHash        string    `json:"CodigoHash"`
+	FechaExpiracion   time.Time `json:"FechaExpiracion"`
+	FechaUso          time.Time `json:"FechaUso"`
+	Intentos          int       `json:"Intentos"`
+	Activo            bool      `json:"Activo"`
+	FechaCreacion     time.Time `json:"FechaCreacion"`
+	FechaModificacion time.Time `json:"FechaModificacion"`
+}
+
+type CuentaSocial struct {
+	Id             int    `json:"Id"`
+	IdUsuario      *Ref   `json:"IdUsuario"`
+	Proveedor      string `json:"Proveedor"`
+	IdExterno      string `json:"IdExterno"`
+	EmailProveedor string `json:"EmailProveedor"`
+	Activo         bool   `json:"Activo"`
+}
+
+type Rol struct {
+	Id        int    `json:"Id"`
+	NombreRol string `json:"NombreRol"`
+}
+
+type UsuarioRol struct {
+	Id        int  `json:"Id"`
+	IdUsuario *Ref `json:"IdUsuario"`
+	IdRol     *Ref `json:"IdRol"`
+	Activo    bool `json:"Activo"`
+}
+
+type TipoDocumento struct {
+	Id     int    `json:"Id"`
+	Codigo string `json:"Codigo"`
+}
+
+type AuditoriaLogin struct {
+	IdUsuario    *Ref   `json:"IdUsuario"`
+	TipoEvento   string `json:"TipoEvento"`
+	IpAddress    string `json:"IpAddress"`
+	Navegador    string `json:"Navegador"`
+	EstadoEvento string `json:"EstadoEvento"`
+}
+
+// ------------------------------------------------------------
+// Datos que manda la pagina
+// ------------------------------------------------------------
+
+type DatosRegistro struct {
+	Nombre          string `json:"nombre"`
+	Apellido        string `json:"apellido"`
+	Email           string `json:"email"`
+	Contrasena      string `json:"contrasena"`
+	IdTipoDocumento int    `json:"id_tipo_documento"`
+	Cedula          string `json:"cedula"`
+	Telefono        string `json:"telefono"`
+	Ciudad          string `json:"ciudad"`
+	Direccion       string `json:"direccion"`
+	AceptaTerminos  bool   `json:"acepta_terminos"`
+}
+
+type DatosLogin struct {
+	Email      string `json:"email"`
+	Contrasena string `json:"contrasena"`
+	Ip         string `json:"-"`
+	Navegador  string `json:"-"`
+}
+
+// DatosCodigo: POST /v1/login/verificar. El id del usuario no lo manda la
+// pagina: sale del token_verificacion que entrega el paso 1 del login.
+type DatosCodigo struct {
+	TokenVerificacion string `json:"token_verificacion"`
+	Codigo            string `json:"codigo"`
+	IdUsuario         int    `json:"-"`
+}
+
+// DatosLoginSocial: la pagina solo manda el proveedor y el token que le
+// dio Google. El correo y el id se sacan del token ya verificado,
+// nunca de lo que mande la pagina.
+type DatosLoginSocial struct {
+	Proveedor string `json:"proveedor"` // por ahora solo "google"
+	IdToken   string `json:"id_token"`
+	Ip        string `json:"-"`
+	Navegador string `json:"-"`
+}
+
+type DatosContrasena struct {
+	Email            string `json:"email"`
+	Codigo           string `json:"codigo"`
+	ContrasenaActual string `json:"contrasena_actual"`
+	ContrasenaNueva  string `json:"contrasena_nueva"`
+	Ip               string `json:"-"`
+	Navegador        string `json:"-"`
+}
+
+// DatosReenviar: POST /v1/login/reenviar (pedir otro codigo del login).
+type DatosReenviar struct {
+	TokenVerificacion string `json:"token_verificacion"`
+	IdUsuario         int    `json:"-"`
+}
+
+// DatosAdminUsuario: lo que manda el administrador.
+// PUT /v1/admin/usuarios/:id/rol    -> {"rol": "admin"}
+// PUT /v1/admin/usuarios/:id/estado -> {"estado": "suspendido", "motivo": "..."}
+type DatosAdminUsuario struct {
+	Rol    string `json:"rol"`
+	Estado string `json:"estado"`
+	Motivo string `json:"motivo"`
+}
