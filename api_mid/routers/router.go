@@ -25,7 +25,7 @@ func init() {
 	beego.Router("/v1/logout", &controllers.AuthController{}, "post:PostLogout")
 	beego.Router("/v1/login/social", &controllers.AuthController{}, "post:PostLoginSocial")
 	beego.Router("/v1/recuperar-contrasena", &controllers.AuthController{}, "post:PostRecuperarContrasena;put:PutRestablecerContrasena")
-	beego.Router("/v1/perfil/:id", &controllers.AuthController{}, "get:GetPerfil")
+	beego.Router("/v1/perfil/:id", &controllers.AuthController{}, "get:GetPerfil;put:PutPerfil")
 	beego.Router("/v1/perfil/:id/contrasena", &controllers.AuthController{}, "put:PutCambiarContrasena")
 	beego.Router("/v1/admin/usuarios", &controllers.AuthController{}, "get:GetAdminUsuarios")
 	beego.Router("/v1/admin/usuarios/:id/rol", &controllers.AuthController{}, "put:PutRolUsuario")

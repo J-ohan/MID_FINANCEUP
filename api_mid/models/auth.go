@@ -108,6 +108,17 @@ type DatosRegistro struct {
 	AceptaTerminos  bool   `json:"acepta_terminos"`
 }
 
+// DatosPerfil: PUT /v1/perfil/:id (datos personales de "Mi perfil").
+// El correo y la cedula no se cambian desde aqui.
+type DatosPerfil struct {
+	Nombre          string `json:"nombre"`
+	Apellido        string `json:"apellido"`
+	Telefono        string `json:"telefono"`
+	Ciudad          string `json:"ciudad"`
+	Direccion       string `json:"direccion"`
+	FechaNacimiento string `json:"fecha_nacimiento"` // "2006-01-02" o vacio
+}
+
 type DatosLogin struct {
 	Email      string `json:"email"`
 	Contrasena string `json:"contrasena"`

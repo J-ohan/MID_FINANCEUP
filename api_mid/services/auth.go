@@ -508,6 +508,52 @@ func ObtenerPerfil(id int) (map[string]interface{}, error) {
 	}, nil
 }
 
+// ActualizarPerfil guarda los datos personales que el usuario edita en "Mi perfil"
+// y devuelve el perfil como queda.
+func ActualizarPerfil(idUsuario int, datos models.DatosPerfil) (map[string]interface{}, error) {
+
+	// 1. Validar (mismas reglas del registro)
+	nombre := strings.TrimSpace(datos.Nombre)
+	apellido := strings.TrimSpace(datos.Apellido)
+	telefono := strings.TrimSpace(datos.Telefono)
+
+	if utf8.RuneCountInString(nombre) < 3 || utf8.RuneCountInString(apellido) < 3 {
+		return nil, helpers.NuevoError(http.StatusBadRequest, "El nombre y el apellido deben tener minimo 3 letras")
+	}
+	if utf8.RuneCountInString(telefono) > 20 {
+		return nil, helpers.NuevoError(http.StatusBadRequest, "El telefono puede tener maximo 20 caracteres")
+	}
+
+	// 2. Traer el usuario y cambiar solo los datos personales
+	usuario, err := BuscarUsuario(idUsuario)
+	if err != nil {
+		return nil, err
+	}
+
+	usuario.Nombre = nombre
+	usuario.Apellido = apellido
+	usuario.Telefono = telefono
+	usuario.Ciudad = strings.TrimSpace(datos.Ciudad)
+	usuario.Direccion = strings.TrimSpace(datos.Direccion)
+	usuario.FechaModificacion = time.Now().UTC()
+
+	usuario.FechaNacimiento = time.Time{}
+	if datos.FechaNacimiento != "" {
+		fecha, err := time.Parse("2006-01-02", datos.FechaNacimiento)
+		if err != nil || fecha.After(time.Now()) {
+			return nil, helpers.NuevoError(http.StatusBadRequest, "La fecha de nacimiento no es valida")
+		}
+		usuario.FechaNacimiento = fecha
+	}
+
+	// 3. El CRUD reemplaza el registro: se manda el usuario completo
+	if err := helpers.Actualizar(fmt.Sprintf("%s/usuario/%d", helpers.UrlCrudAuth, idUsuario), usuario); err != nil {
+		return nil, err
+	}
+
+	return ObtenerPerfil(idUsuario)
+}
+
 // Registrar crea la cuenta (usuario + clave + rol) y deja la sesion iniciada.
 // Si algo falla a la mitad, borra lo creado.
 func Registrar(datos models.DatosRegistro) (map[string]interface{}, error) {

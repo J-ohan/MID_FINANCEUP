@@ -37,6 +37,30 @@ func (c *AuthController) GetPerfil() {
 	helpers.Responder(&c.Controller, http.StatusOK, perfil)
 }
 
+// PUT /v1/perfil/:id
+func (c *AuthController) PutPerfil() {
+
+	id, err := helpers.LeerId(&c.Controller)
+	if err != nil {
+		helpers.ResponderError(&c.Controller, err)
+		return
+	}
+
+	var datos models.DatosPerfil
+	if err := helpers.LeerBody(&c.Controller, &datos); err != nil {
+		helpers.ResponderError(&c.Controller, err)
+		return
+	}
+
+	perfil, err := services.ActualizarPerfil(id, datos)
+	if err != nil {
+		helpers.ResponderError(&c.Controller, err)
+		return
+	}
+
+	helpers.Responder(&c.Controller, http.StatusOK, perfil)
+}
+
 // POST /v1/registro
 func (c *AuthController) PostRegistro() {
 
