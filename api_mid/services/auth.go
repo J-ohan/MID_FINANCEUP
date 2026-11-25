@@ -933,7 +933,7 @@ func CambiarContrasena(idUsuario int, datos models.DatosContrasena) (map[string]
 		sumarIntentoFallido(&credencial)
 		helpers.Actualizar(fmt.Sprintf("%s/credencial/%d", helpers.UrlCrudAuth, credencial.Id), credencial)
 		auditar(idUsuario, "cambio_contrasena", false, datos.Ip, datos.Navegador)
-		return nil, helpers.NuevoError(http.StatusUnauthorized, "La contrasena actual no es correcta")
+		return nil, helpers.NuevoError(http.StatusBadRequest, "La contrasena actual no es correcta")
 	}
 
 	if err := guardarContrasena(idUsuario, datos.ContrasenaNueva); err != nil {
