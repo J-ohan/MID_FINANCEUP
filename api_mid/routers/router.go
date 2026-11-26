@@ -46,6 +46,9 @@ func init() {
 	beego.Router("/v1/ofertas/:id", &controllers.NegocioController{}, "get:GetOferta")
 	beego.Router("/v1/solicitud-credito", &controllers.NegocioController{}, "post:PostSolicitudCredito")
 	beego.Router("/v1/solicitud-credito/usuario/:id", &controllers.NegocioController{}, "get:GetSolicitudesUsuario")
+	beego.Router("/v1/admin/aliados", &controllers.NegocioController{}, "get:GetAliadosAdmin")
+	beego.Router("/v1/admin/ofertas", &controllers.NegocioController{}, "post:PostOfertaAdmin")
+	beego.Router("/v1/admin/ofertas/:id", &controllers.NegocioController{}, "put:PutOfertaAdmin;delete:DeleteOfertaAdmin")
 	beego.Router("/v1/admin/solicitudes-credito", &controllers.NegocioController{}, "get:GetSolicitudesAdmin")
 
 	// PQR (crud_soporte)

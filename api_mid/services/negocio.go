@@ -21,6 +21,7 @@ func datosOferta(producto models.ProductoCrediticio, banco models.Banco, textos 
 	return map[string]interface{}{
 		"id":             producto.Id,
 		"slug":           producto.Slug,
+		"id_aliado":      banco.Id,
 		"aliado":         banco.NombreBanco,
 		"tipo":           banco.TipoAliado,
 		"logo_texto":     banco.LogoTexto,
@@ -32,7 +33,9 @@ func datosOferta(producto models.ProductoCrediticio, banco models.Banco, textos 
 		"familia":        producto.Familia,
 		"beneficio":      producto.Beneficio,
 		"tasa_desde":     producto.TasaMinima,
+		"monto_minimo":   producto.MontoMinimo,
 		"monto_maximo":   producto.MontoMaximo,
+		"plazo_minimo":   producto.PlazoMinimo,
 		"plazo_maximo":   producto.PlazoMaximo,
 		"aprobacion":     producto.TiempoAprobacion,
 		"calificacion":   producto.Calificacion,
@@ -176,8 +179,6 @@ func FichaOferta(id int) (map[string]interface{}, error) {
 
 	// 5. Armar la ficha
 	ficha := datosOferta(producto, banco, textos)
-	ficha["monto_minimo"] = producto.MontoMinimo
-	ficha["plazo_minimo"] = producto.PlazoMinimo
 	ficha["caracteristicas"] = textos["caracteristica"]
 	ficha["documentos"] = textos["documento"]
 	ficha["tarifas"] = listaTarifas

@@ -31,6 +31,7 @@ type ProductoCrediticio struct {
 	TasaMaxima       float64 `json:"TasaMaxima"`
 	PlazoMinimo      int     `json:"PlazoMinimo"`
 	PlazoMaximo      int     `json:"PlazoMaximo"`
+	Requisitos       string  `json:"Requisitos"`
 	TiempoAprobacion string  `json:"TiempoAprobacion"`
 	Calificacion     float64 `json:"Calificacion"`
 	Usuarios         int     `json:"Usuarios"`
@@ -100,4 +101,22 @@ type DatosSolicitudCredito struct {
 	Celular        string  `json:"celular"`
 	Ingresos       float64 `json:"ingresos"`
 	AceptaTerminos bool    `json:"acepta_terminos"`
+}
+
+// Lo que manda el admin al crear o editar una oferta
+type DatosOfertaAdmin struct {
+	IdAliado      int     `json:"id_aliado"`
+	Categoria     string  `json:"categoria"`
+	Descripcion   string  `json:"descripcion"`
+	Familia       string  `json:"familia"`
+	TasaDesde     float64 `json:"tasa_desde"`
+	MontoMinimo   float64 `json:"monto_minimo"`
+	MontoMaximo   float64 `json:"monto_maximo"`
+	PlazoMinimo   int     `json:"plazo_minimo"`
+	PlazoMaximo   int     `json:"plazo_maximo"`
+	Aprobacion    string  `json:"aprobacion"`
+	Meta          string  `json:"meta"`
+	CtaPrimaria   string  `json:"cta_primaria"`
+	CtaSecundaria string  `json:"cta_secundaria"`
+	Destacada     bool    `json:"destacada"`
 }

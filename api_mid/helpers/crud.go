@@ -87,6 +87,7 @@ func Crear(url string, datos interface{}, respuesta interface{}) error {
 // Actualizar reemplaza un registro (PUT /v1/tabla/5).
 // OJO: el PUT del CRUD reemplaza TODO el registro, por eso
 // siempre se manda el registro completo.
+// El CRUD siempre responde 200: si guardo manda "OK" y si no, el texto del error.
 func Actualizar(url string, datos interface{}) error {
 
 	jsonDatos, _ := json.Marshal(datos)
@@ -101,7 +102,16 @@ func Actualizar(url string, datos interface{}) error {
 		return NuevoError(http.StatusBadGateway, "No fue posible comunicarse con un CRUD: "+url)
 	}
 
-	response.Body.Close()
+	defer response.Body.Close()
+
+	body, _ := io.ReadAll(response.Body)
+
+	var texto string
+	json.Unmarshal(body, &texto)
+
+	if texto != "OK" {
+		return NuevoError(http.StatusBadRequest, "No se pudo actualizar: "+string(body))
+	}
 
 	return nil
 }
