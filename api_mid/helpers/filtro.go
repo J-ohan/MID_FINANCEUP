@@ -3,6 +3,7 @@ package helpers
 import (
 	"encoding/json"
 	"net/http"
+	"path"
 	"regexp"
 	"strconv"
 	"strings"
@@ -45,7 +46,9 @@ var rutasConIdUsuario = []*regexp.Regexp{
 // FiltroAutenticacion revisa el token y los permisos antes de cada ruta.
 func FiltroAutenticacion(ctx *context.Context) {
 	metodo := strings.ToUpper(ctx.Input.Method())
-	ruta := "/" + strings.Trim(strings.TrimSpace(ctx.Input.URL()), "/")
+	// Se limpia la ruta ("//v1/./admin/" -> "/v1/admin") y se pasa a minusculas
+	// para que nadie se salte las revisiones escribiendo la URL de otra forma.
+	ruta := strings.ToLower(path.Clean("/" + strings.TrimSpace(ctx.Input.URL())))
 
 	// OPTIONS y rutas públicas no necesitan token.
 	if metodo == http.MethodOptions || rutasPublicas[metodo+" "+ruta] {

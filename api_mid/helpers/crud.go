@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
+	"log"
 	"net/http"
 )
 
@@ -74,7 +75,9 @@ func Crear(url string, datos interface{}, respuesta interface{}) error {
 	body, _ := io.ReadAll(response.Body)
 
 	if response.StatusCode != http.StatusCreated {
-		return NuevoError(http.StatusBadRequest, "No se pudo guardar: "+string(body))
+		// El detalle del CRUD queda en la consola del MID, no se le muestra al usuario
+		log.Println("CRUD no guardo", url, string(body))
+		return NuevoError(http.StatusBadRequest, "No se pudo guardar el registro")
 	}
 
 	if respuesta != nil {
@@ -110,7 +113,8 @@ func Actualizar(url string, datos interface{}) error {
 	json.Unmarshal(body, &texto)
 
 	if texto != "OK" {
-		return NuevoError(http.StatusBadRequest, "No se pudo actualizar: "+string(body))
+		log.Println("CRUD no actualizo", url, string(body))
+		return NuevoError(http.StatusBadRequest, "No se pudo actualizar el registro")
 	}
 
 	return nil
