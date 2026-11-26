@@ -44,16 +44,28 @@ func FinanzasAdmin() (map[string]interface{}, error) {
 		return nil, err
 	}
 
+	categorias, err := categoriasPorId()
+
+	if err != nil {
+		return nil, err
+	}
+
 	// 3. Armar las tres listas poniendo el nombre del usuario
 	listaMovimientos := []map[string]interface{}{}
 	for _, movimiento := range movimientos {
+		categoria := ""
+		if movimiento.IdCategoria != nil {
+			categoria = categorias[movimiento.IdCategoria.Id].Nombre
+		}
+
 		listaMovimientos = append(listaMovimientos, map[string]interface{}{
-			"id":       movimiento.Id,
-			"usuario":  nombres[movimiento.IdUsuario],
-			"fecha":    movimiento.Fecha.Format("2006-01-02"),
-			"concepto": movimiento.Nombre,
-			"tipo":     tipoMovimiento(movimiento),
-			"valor":    movimiento.Monto,
+			"id":        movimiento.Id,
+			"usuario":   nombres[movimiento.IdUsuario],
+			"fecha":     movimiento.Fecha.Format("2006-01-02"),
+			"concepto":  movimiento.Nombre,
+			"categoria": categoria,
+			"tipo":      tipoMovimiento(movimiento),
+			"valor":     movimiento.Monto,
 		})
 	}
 
