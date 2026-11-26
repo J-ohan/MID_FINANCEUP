@@ -60,6 +60,7 @@ func init() {
 	beego.Router("/v1/pqr/:id/respuesta", &controllers.SoporteController{}, "post:PostRespuestaPqr")
 	beego.Router("/v1/admin/pqr/:id/respuesta", &controllers.SoporteController{}, "post:PostRespuestaPqrAdmin")
 	beego.Router("/v1/admin/pqr", &controllers.SoporteController{}, "get:GetPqrAdmin")
+	beego.Router("/v1/admin/pqr/:id", &controllers.SoporteController{}, "delete:DeletePqrAdmin")
 
 	// Finanzas (crud_finanzas) - controladores en controllers/finanzas/
 	// Crear, editar o borrar movimientos, metas e inversiones, y la lista

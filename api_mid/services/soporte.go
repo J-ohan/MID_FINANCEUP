@@ -169,7 +169,7 @@ func VerPqr(radicado string, idUsuario int) (map[string]interface{}, error) {
 	}
 
 	// Si la PQR es de otro usuario se responde como si no existiera
-	if len(pqrs) == 0 || (idUsuario > 0 && pqrs[0].IdUsuario != idUsuario) {
+	if len(pqrs) == 0 || !pqrs[0].Activo || (idUsuario > 0 && pqrs[0].IdUsuario != idUsuario) {
 		return nil, helpers.NuevoError(http.StatusNotFound, "No existe una PQR con ese radicado")
 	}
 
@@ -288,6 +288,30 @@ func ResponderPqr(idPqr int, datos models.DatosRespuestaPqr, idUsuario int) (map
 	helpers.Actualizar(direccion, pqr)
 
 	return map[string]interface{}{"mensaje": "Respuesta guardada", "radicado": pqr.Radicado, "progreso": pqr.Progreso}, nil
+}
+
+// EliminarPqr la quita del panel y de la lista del usuario (activo = false).
+// No se borra de la base para conservar el registro del caso.
+func EliminarPqr(idPqr int) (map[string]interface{}, error) {
+
+	var pqr models.Pqr
+	direccion := fmt.Sprintf("%s/pqr/%d", helpers.UrlCrudSoporte, idPqr)
+
+	if err := helpers.ConsultarUno(direccion, &pqr, "La PQR no existe"); err != nil {
+		return nil, err
+	}
+
+	if pqr.Id == 0 || !pqr.Activo {
+		return nil, helpers.NuevoError(http.StatusNotFound, "La PQR no existe")
+	}
+
+	pqr.Activo = false
+
+	if err := helpers.Actualizar(direccion, pqr); err != nil {
+		return nil, err
+	}
+
+	return map[string]interface{}{"mensaje": "PQR eliminada", "radicado": pqr.Radicado}, nil
 }
 
 // PqrAdmin: todas las PQR con su estado y el nombre del usuario.

@@ -118,3 +118,21 @@ func (c *SoporteController) GetPqrAdmin() {
 
 	helpers.Responder(&c.Controller, http.StatusOK, resultado)
 }
+
+// DELETE /v1/admin/pqr/:id  (no borra: la deja inactiva)
+func (c *SoporteController) DeletePqrAdmin() {
+
+	id, err := helpers.LeerId(&c.Controller)
+	if err != nil {
+		helpers.ResponderError(&c.Controller, err)
+		return
+	}
+
+	resultado, err := services.EliminarPqr(id)
+	if err != nil {
+		helpers.ResponderError(&c.Controller, err)
+		return
+	}
+
+	helpers.Responder(&c.Controller, http.StatusOK, resultado)
+}
