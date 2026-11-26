@@ -141,16 +141,18 @@ func PqrUsuario(idUsuario int) ([]map[string]interface{}, error) {
 
 	for _, pqr := range pqrs {
 		lista = append(lista, map[string]interface{}{
-			"id_pqr":         pqr.Id,
-			"radicado":       pqr.Radicado,
-			"titulo":         pqr.Titulo,
-			"tipo":           pqr.Tipo,
-			"categoria":      pqr.Categoria,
-			"prioridad":      pqr.Prioridad,
-			"estado":         estados[pqr.IdEstado.Id],
-			"progreso":       pqr.Progreso,
-			"descripcion":    pqr.Descripcion,
-			"fecha_creacion": pqr.FechaCreacion,
+			"id_pqr":               pqr.Id,
+			"radicado":             pqr.Radicado,
+			"titulo":               pqr.Titulo,
+			"tipo":                 pqr.Tipo,
+			"categoria":            pqr.Categoria,
+			"prioridad":            pqr.Prioridad,
+			"estado":               estados[pqr.IdEstado.Id],
+			"progreso":             pqr.Progreso,
+			"descripcion":          pqr.Descripcion,
+			"asesor":               pqr.Asesor,
+			"fecha_creacion":       pqr.FechaCreacion,
+			"ultima_actualizacion": pqr.FechaModificacion,
 		})
 	}
 
@@ -313,15 +315,18 @@ func PqrAdmin() ([]map[string]interface{}, error) {
 
 	for _, pqr := range pqrs {
 		lista = append(lista, map[string]interface{}{
-			"id_pqr":         pqr.Id,
-			"radicado":       pqr.Radicado,
-			"titulo":         pqr.Titulo,
-			"tipo":           pqr.Tipo,
-			"prioridad":      pqr.Prioridad,
-			"estado":         estados[pqr.IdEstado.Id],
-			"progreso":       pqr.Progreso,
-			"usuario":        nombres[pqr.IdUsuario],
-			"fecha_creacion": pqr.FechaCreacion,
+			"id_pqr":               pqr.Id,
+			"radicado":             pqr.Radicado,
+			"titulo":               pqr.Titulo,
+			"tipo":                 pqr.Tipo,
+			"prioridad":            pqr.Prioridad,
+			"estado":               estados[pqr.IdEstado.Id],
+			"categoria":            pqr.Categoria,
+			"progreso":             pqr.Progreso,
+			"asesor":               pqr.Asesor,
+			"usuario":              nombres[pqr.IdUsuario],
+			"fecha_creacion":       pqr.FechaCreacion,
+			"ultima_actualizacion": pqr.FechaModificacion,
 		})
 	}
 

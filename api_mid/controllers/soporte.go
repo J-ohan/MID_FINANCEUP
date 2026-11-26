@@ -59,6 +59,8 @@ func (c *SoporteController) GetPqr() {
 	helpers.Responder(&c.Controller, http.StatusOK, resultado)
 }
 
+// PostRespuestaPqr: el dueño de la PQR escribe un mensaje en su caso.
+// No puede cambiar el estado ni el progreso (lo revisa services.ResponderPqr).
 func (c *SoporteController) PostRespuestaPqr() {
 
 	id, err := helpers.LeerId(&c.Controller)
