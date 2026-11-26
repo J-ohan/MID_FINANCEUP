@@ -37,7 +37,20 @@ type ModuloEducativo struct {
 	Estudiantes       int       `json:"Estudiantes"`
 	Calificacion      float64   `json:"Calificacion"`
 	UrlThumbnail      string    `json:"UrlThumbnail"`
+	Contenido         string    `json:"Contenido"`
+	Activo            bool      `json:"Activo"`
 	FechaModificacion time.Time `json:"FechaModificacion"`
+}
+
+// DatosCursoAdmin es lo que manda el admin al crear o editar un curso.
+type DatosCursoAdmin struct {
+	IdEscuela   int    `json:"id_escuela"`
+	Titulo      string `json:"titulo"`
+	Descripcion string `json:"descripcion"`
+	Categoria   string `json:"categoria"`
+	Nivel       string `json:"nivel"`
+	Formato     string `json:"formato"`
+	Duracion    string `json:"duracion"`
 }
 
 type ModuloDetalle struct {

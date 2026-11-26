@@ -40,6 +40,8 @@ func init() {
 	beego.Router("/v1/clase/:id/completar", &controllers.EducacionController{}, "post:PostCompletarLeccion")
 	beego.Router("/v1/progreso-educativo/:id", &controllers.EducacionController{}, "get:GetProgresoEducativo")
 	beego.Router("/v1/certificado", &controllers.EducacionController{}, "post:PostCertificado")
+	beego.Router("/v1/admin/cursos", &controllers.EducacionController{}, "post:PostCursoAdmin")
+	beego.Router("/v1/admin/cursos/:id", &controllers.EducacionController{}, "put:PutCursoAdmin;delete:DeleteCursoAdmin")
 
 	// Alianzas (crud_negocio)
 	beego.Router("/v1/ofertas", &controllers.NegocioController{}, "get:GetOfertas")

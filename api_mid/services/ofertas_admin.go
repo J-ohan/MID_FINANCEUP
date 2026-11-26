@@ -46,7 +46,7 @@ func CrearOferta(datos models.DatosOfertaAdmin) (map[string]interface{}, error) 
 	}
 
 	producto := models.ProductoCrediticio{
-		Slug:     slugDisponible(banco.NombreBanco + " " + datos.Categoria),
+		Slug:     slugDisponible(banco.NombreBanco+" "+datos.Categoria, helpers.UrlCrudNegocio+"/producto_crediticio"),
 		Usuarios: 0,
 		Activo:   true,
 	}
@@ -188,7 +188,8 @@ func pasarDatos(producto *models.ProductoCrediticio, datos models.DatosOfertaAdm
 
 // slugDisponible arma el texto de la URL ("Banco Andino Libre" -> "banco-andino-libre").
 // El slug es unico en la tabla: si ya existe se le agrega un numero.
-func slugDisponible(texto string) string {
+// Lo usan las ofertas y los cursos (urlTabla = CRUD + tabla).
+func slugDisponible(texto string, urlTabla string) string {
 
 	quitarTildes := strings.NewReplacer("á", "a", "é", "e", "í", "i", "ó", "o", "ú", "u", "ü", "u", "ñ", "n")
 	texto = quitarTildes.Replace(strings.ToLower(texto))
@@ -203,8 +204,8 @@ func slugDisponible(texto string) string {
 	}
 	slug = strings.Trim(slug, "-")
 
-	var iguales []models.ProductoCrediticio
-	helpers.ConsultarLista(helpers.UrlCrudNegocio+"/producto_crediticio?query=slug:"+slug+"&limit=1", &iguales)
+	var iguales []map[string]interface{}
+	helpers.ConsultarLista(urlTabla+"?query=slug:"+slug+"&limit=1", &iguales)
 
 	if len(iguales) > 0 {
 		slug = fmt.Sprintf("%s-%d", slug, time.Now().Unix())
