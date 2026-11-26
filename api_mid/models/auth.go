@@ -108,6 +108,19 @@ type DatosRegistro struct {
 	AceptaTerminos  bool   `json:"acepta_terminos"`
 }
 
+// DatosUsuarioAdmin: el admin crea (POST /v1/admin/usuarios) o edita
+// (PUT /v1/admin/usuarios/:id) una cuenta. Al editar solo cuentan
+// nombre, apellido, telefono y cedula.
+type DatosUsuarioAdmin struct {
+	Nombre     string `json:"nombre"`
+	Apellido   string `json:"apellido"`
+	Email      string `json:"email"`
+	Contrasena string `json:"contrasena"`
+	Cedula     string `json:"cedula"`
+	Telefono   string `json:"telefono"`
+	Rol        string `json:"rol"` // "admin" o "user"
+}
+
 // DatosPerfil: PUT /v1/perfil/:id (datos personales de "Mi perfil").
 // El correo y la cedula no se cambian desde aqui.
 type DatosPerfil struct {

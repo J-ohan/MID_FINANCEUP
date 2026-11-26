@@ -96,6 +96,74 @@ func ListarUsuariosAdmin() ([]map[string]interface{}, error) {
 	return lista, nil
 }
 
+// CrearUsuarioAdmin crea una cuenta desde el panel con las mismas reglas del registro.
+// Nace con rol Usuario; si el admin eligio "admin", se le cambia despues.
+func CrearUsuarioAdmin(idAdmin int, datos models.DatosUsuarioAdmin) (map[string]interface{}, error) {
+
+	usuario, err := crearCuenta(models.DatosRegistro{
+		Nombre:     datos.Nombre,
+		Apellido:   datos.Apellido,
+		Email:      datos.Email,
+		Contrasena: datos.Contrasena,
+		Cedula:     datos.Cedula,
+		Telefono:   datos.Telefono,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	rol := "user"
+	if strings.EqualFold(strings.TrimSpace(datos.Rol), "admin") {
+		if _, err := CambiarRolUsuario(idAdmin, usuario.Id, models.DatosAdminUsuario{Rol: "admin"}); err != nil {
+			return nil, err
+		}
+		rol = "admin"
+	}
+
+	RegistrarActividad(usuario.Id, "CREACION_ADMIN",
+		fmt.Sprintf("Cuenta creada por el administrador con id %d", idAdmin), "auth.usuario")
+
+	return map[string]interface{}{"mensaje": "Usuario creado", "id_usuario": usuario.Id, "rol": rol}, nil
+}
+
+// EditarUsuarioAdmin cambia los datos personales de otra cuenta.
+// El correo no se cambia (es el usuario de inicio de sesion) y el rol tiene su propia ruta.
+func EditarUsuarioAdmin(idAdmin int, idUsuario int, datos models.DatosUsuarioAdmin) (map[string]interface{}, error) {
+
+	if idUsuario == idAdmin {
+		return nil, helpers.NuevoError(http.StatusBadRequest, "Tus datos se cambian desde Mi perfil")
+	}
+
+	nombre := strings.TrimSpace(datos.Nombre)
+	apellido := strings.TrimSpace(datos.Apellido)
+	if utf8.RuneCountInString(nombre) < 3 || utf8.RuneCountInString(apellido) < 3 {
+		return nil, helpers.NuevoError(http.StatusBadRequest, "El nombre y el apellido deben tener minimo 3 letras")
+	}
+
+	usuario, err := BuscarUsuario(idUsuario)
+	if err != nil {
+		return nil, err
+	}
+
+	usuario.Nombre = nombre
+	usuario.Apellido = apellido
+	usuario.Telefono = strings.TrimSpace(datos.Telefono)
+	usuario.Cedula = nil // vacia se guarda NULL
+	if cedula := strings.TrimSpace(datos.Cedula); cedula != "" {
+		usuario.Cedula = &cedula
+	}
+
+	// El CRUD reemplaza el registro: se manda el usuario completo
+	if err := helpers.Actualizar(fmt.Sprintf("%s/usuario/%d", helpers.UrlCrudAuth, idUsuario), usuario); err != nil {
+		return nil, err
+	}
+
+	RegistrarActividad(idUsuario, "EDICION_ADMIN",
+		fmt.Sprintf("Datos personales cambiados por el administrador con id %d", idAdmin), "auth.usuario")
+
+	return map[string]interface{}{"mensaje": "Usuario actualizado", "id_usuario": idUsuario}, nil
+}
+
 // CambiarRolUsuario le deja al usuario un solo rol activo: el que eligio el admin.
 func CambiarRolUsuario(idAdmin int, idUsuario int, datos models.DatosAdminUsuario) (map[string]interface{}, error) {
 

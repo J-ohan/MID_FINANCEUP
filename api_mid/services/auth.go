@@ -558,32 +558,50 @@ func ActualizarPerfil(idUsuario int, datos models.DatosPerfil) (map[string]inter
 // Si algo falla a la mitad, borra lo creado.
 func Registrar(datos models.DatosRegistro) (map[string]interface{}, error) {
 
+	if !datos.AceptaTerminos {
+		return nil, helpers.NuevoError(http.StatusBadRequest, "Debes aceptar los terminos y condiciones")
+	}
+
+	nuevoUsuario, err := crearCuenta(datos)
+	if err != nil {
+		return nil, err
+	}
+
+	// Dejar la sesion iniciada (la pagina entra directo despues del registro)
+	sesion, err := sesionIniciada(nuevoUsuario)
+	if err != nil {
+		return nil, err
+	}
+	sesion["mensaje"] = "Usuario registrado"
+	return sesion, nil
+}
+
+// crearCuenta valida los datos, crea el usuario, guarda su clave y le da el rol Usuario.
+// La usan el registro de la pagina y el admin cuando crea una cuenta.
+func crearCuenta(datos models.DatosRegistro) (models.Usuario, error) {
+
 	// 1. Validar
 	datos.Nombre = strings.TrimSpace(datos.Nombre)
 	datos.Apellido = strings.TrimSpace(datos.Apellido)
 
 	if utf8.RuneCountInString(datos.Nombre) < 3 || utf8.RuneCountInString(datos.Apellido) < 3 {
-		return nil, helpers.NuevoError(http.StatusBadRequest, "El nombre y el apellido deben tener minimo 3 letras")
+		return models.Usuario{}, helpers.NuevoError(http.StatusBadRequest, "El nombre y el apellido deben tener minimo 3 letras")
 	}
 
 	email, err := normalizarEmail(datos.Email)
 	if err != nil {
-		return nil, err
+		return models.Usuario{}, err
 	}
 
 	if err := validarContrasena(datos.Contrasena); err != nil {
-		return nil, err
-	}
-
-	if !datos.AceptaTerminos {
-		return nil, helpers.NuevoError(http.StatusBadRequest, "Debes aceptar los terminos y condiciones")
+		return models.Usuario{}, err
 	}
 
 	// 2. El correo no debe estar registrado
 	if _, existe, err := buscarUsuarioPorEmail(email); err != nil {
-		return nil, err
+		return models.Usuario{}, err
 	} else if existe {
-		return nil, helpers.NuevoError(http.StatusConflict, "Ya existe un usuario con ese correo")
+		return models.Usuario{}, helpers.NuevoError(http.StatusConflict, "Ya existe un usuario con ese correo")
 	}
 
 	// 3. Crear el usuario (la cedula es opcional: vacia se guarda NULL)
@@ -609,22 +627,16 @@ func Registrar(datos models.DatosRegistro) (map[string]interface{}, error) {
 	}
 
 	if err := helpers.Crear(helpers.UrlCrudAuth+"/usuario", nuevoUsuario, &nuevoUsuario); err != nil {
-		return nil, err
+		return models.Usuario{}, err
 	}
 
 	// 4. Clave y rol (si falla, se deshace todo)
 	if guardarContrasena(nuevoUsuario.Id, datos.Contrasena) != nil || asignarRolUsuario(nuevoUsuario.Id) != nil {
 		borrarUsuario(nuevoUsuario.Id)
-		return nil, helpers.NuevoError(http.StatusBadGateway, "No se pudo completar el registro, intenta de nuevo")
+		return models.Usuario{}, helpers.NuevoError(http.StatusBadGateway, "No se pudo completar el registro, intenta de nuevo")
 	}
 
-	// 5. Dejar la sesion iniciada (la pagina entra directo despues del registro)
-	sesion, err := sesionIniciada(nuevoUsuario)
-	if err != nil {
-		return nil, err
-	}
-	sesion["mensaje"] = "Usuario registrado"
-	return sesion, nil
+	return nuevoUsuario, nil
 }
 
 // IniciarSesion (paso 1): valida correo y clave y envia el codigo al correo.
