@@ -47,7 +47,8 @@ func datosOferta(producto models.ProductoCrediticio, banco models.Banco, textos 
 	}
 }
 
-// Ofertas: productos + su aliado + etiquetas, perfiles y requisitos.
+// Ofertas: productos + su aliado + etiquetas, perfiles, requisitos,
+// caracteristicas y tarifas (la pagina las muestra en la tarjeta y en el comparativo).
 func Ofertas() ([]map[string]interface{}, error) {
 
 	// 1. Productos activos, bancos y detalles
@@ -67,7 +68,13 @@ func Ofertas() ([]map[string]interface{}, error) {
 		return nil, err
 	}
 
-	// 2. Guardar bancos por id y detalles por producto y tipo
+	var tarifas []models.ProductoTarifa
+
+	if err := helpers.ConsultarLista(helpers.UrlCrudNegocio+"/producto_tarifa?query=activo:true&sortby=Orden&order=asc&limit=10000", &tarifas); err != nil {
+		return nil, err
+	}
+
+	// 2. Guardar bancos por id; detalles y tarifas por producto
 	bancoPorId := map[int]models.Banco{}
 	for _, banco := range bancos {
 		bancoPorId[banco.Id] = banco
@@ -84,11 +91,21 @@ func Ofertas() ([]map[string]interface{}, error) {
 		textos[idProducto][detalle.Tipo] = append(textos[idProducto][detalle.Tipo], detalle.Texto)
 	}
 
+	tarifasPorProducto := map[int][]map[string]interface{}{}
+
+	for _, tarifa := range tarifas {
+		idProducto := tarifa.IdProducto.Id
+		tarifasPorProducto[idProducto] = append(tarifasPorProducto[idProducto], map[string]interface{}{"concepto": tarifa.Concepto, "valor": tarifa.Valor})
+	}
+
 	// 3. Unir todo
 	ofertas := []map[string]interface{}{}
 
 	for _, producto := range productos {
-		ofertas = append(ofertas, datosOferta(producto, bancoPorId[producto.IdBanco.Id], textos[producto.Id]))
+		oferta := datosOferta(producto, bancoPorId[producto.IdBanco.Id], textos[producto.Id])
+		oferta["caracteristicas"] = textos[producto.Id]["caracteristica"]
+		oferta["tarifas"] = tarifasPorProducto[producto.Id]
+		ofertas = append(ofertas, oferta)
 	}
 
 	return ofertas, nil
@@ -247,11 +264,16 @@ func RadicarSolicitud(datos models.DatosSolicitudCredito) (map[string]interface{
 	RegistrarActividad(datos.IdUsuario, "CREAR_SOLICITUD", fmt.Sprintf("Solicitud %s de %s por %.0f", solicitud.Radicado, producto.NombreProducto, datos.Monto), "negocio.lead")
 
 	// 7. Cuota fija: cuota = monto * i / (1 - (1 + i)^-meses), con i = tasa anual / 12 / 100
-	cuota := datos.Monto / float64(datos.PlazoMeses)
+	// Los productos sin plazo (cuentas de ahorro) no tienen cuota
+	cuota := 0.0
 
-	i := producto.TasaMinima / 12 / 100
-	if i > 0 {
-		cuota = datos.Monto * i / (1 - math.Pow(1+i, float64(-datos.PlazoMeses)))
+	if datos.PlazoMeses > 0 {
+		cuota = datos.Monto / float64(datos.PlazoMeses)
+
+		i := producto.TasaMinima / 12 / 100
+		if i > 0 {
+			cuota = datos.Monto * i / (1 - math.Pow(1+i, float64(-datos.PlazoMeses)))
+		}
 	}
 
 	return map[string]interface{}{

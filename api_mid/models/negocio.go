@@ -49,8 +49,9 @@ type ProductoDetalle struct {
 }
 
 type ProductoTarifa struct {
-	Concepto string `json:"Concepto"`
-	Valor    string `json:"Valor"`
+	IdProducto *Ref   `json:"IdProducto"`
+	Concepto   string `json:"Concepto"`
+	Valor      string `json:"Valor"`
 }
 
 type ProductoPregunta struct {
