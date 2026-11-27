@@ -504,7 +504,10 @@ func ObtenerPerfil(id int) (map[string]interface{}, error) {
 		"direccion":        usuario.Direccion,
 		"fecha_nacimiento": fechaNacimiento,
 		"estado":           usuario.Estado,
-		"rol":              rolPrincipal(roles),
+		// Prueba de la autorizacion: que version de la politica acepto y cuando
+		"version_politica":          usuario.VersionPolitica,
+		"fecha_aceptacion_terminos": fechaAceptacion(usuario),
+		"rol":                       rolPrincipal(roles),
 	}, nil
 }
 
@@ -539,9 +542,9 @@ func ActualizarPerfil(idUsuario int, datos models.DatosPerfil) (map[string]inter
 
 	usuario.FechaNacimiento = time.Time{}
 	if datos.FechaNacimiento != "" {
-		fecha, err := time.Parse("2006-01-02", datos.FechaNacimiento)
-		if err != nil || fecha.After(time.Now()) {
-			return nil, helpers.NuevoError(http.StatusBadRequest, "La fecha de nacimiento no es valida")
+		fecha, err := validarFechaNacimiento(datos.FechaNacimiento)
+		if err != nil {
+			return nil, err
 		}
 		usuario.FechaNacimiento = fecha
 	}
@@ -560,6 +563,12 @@ func Registrar(datos models.DatosRegistro) (map[string]interface{}, error) {
 
 	if !datos.AceptaTerminos {
 		return nil, helpers.NuevoError(http.StatusBadRequest, "Debes aceptar los terminos y condiciones")
+	}
+	if strings.TrimSpace(datos.VersionPolitica) == "" {
+		return nil, helpers.NuevoError(http.StatusBadRequest, "Falta la version de la politica de datos que aceptaste")
+	}
+	if datos.FechaNacimiento == "" {
+		return nil, helpers.NuevoError(http.StatusBadRequest, "La fecha de nacimiento es obligatoria")
 	}
 
 	nuevoUsuario, err := crearCuenta(datos)
@@ -597,6 +606,14 @@ func crearCuenta(datos models.DatosRegistro) (models.Usuario, error) {
 		return models.Usuario{}, err
 	}
 
+	// La fecha de nacimiento es opcional cuando el admin crea la cuenta
+	var fechaNacimiento time.Time
+	if datos.FechaNacimiento != "" {
+		if fechaNacimiento, err = validarFechaNacimiento(datos.FechaNacimiento); err != nil {
+			return models.Usuario{}, err
+		}
+	}
+
 	// 2. El correo no debe estar registrado
 	if _, existe, err := buscarUsuarioPorEmail(email); err != nil {
 		return models.Usuario{}, err
@@ -612,8 +629,10 @@ func crearCuenta(datos models.DatosRegistro) (models.Usuario, error) {
 		Telefono:                strings.TrimSpace(datos.Telefono),
 		Ciudad:                  strings.TrimSpace(datos.Ciudad),
 		Direccion:               strings.TrimSpace(datos.Direccion),
+		FechaNacimiento:         fechaNacimiento,
 		AceptaTerminos:          true,
 		FechaAceptacionTerminos: time.Now().UTC(),
+		VersionPolitica:         strings.TrimSpace(datos.VersionPolitica),
 		Estado:                  "activo",
 		Activo:                  true,
 	}
@@ -964,4 +983,27 @@ func CerrarSesion(token helpers.DatosToken, ip string, navegador string) map[str
 	auditar(token.IdUsuario, "logout", true, ip, navegador)
 
 	return map[string]interface{}{"mensaje": "Sesion cerrada"}
+}
+
+// EdadMinima es la edad para tener cuenta en FinanceUp.
+const EdadMinima = 18
+
+// validarFechaNacimiento revisa el formato "2006-01-02" y que la persona sea mayor de edad.
+func validarFechaNacimiento(texto string) (time.Time, error) {
+	fecha, err := time.Parse("2006-01-02", texto)
+	if err != nil || fecha.After(time.Now()) {
+		return time.Time{}, helpers.NuevoError(http.StatusBadRequest, "La fecha de nacimiento no es valida")
+	}
+	if fecha.AddDate(EdadMinima, 0, 0).After(time.Now()) {
+		return time.Time{}, helpers.NuevoError(http.StatusBadRequest, "Debes ser mayor de 18 anos para tener una cuenta")
+	}
+	return fecha, nil
+}
+
+// fechaAceptacion devuelve cuando acepto la politica, o vacio si no hay registro.
+func fechaAceptacion(usuario models.Usuario) string {
+	if !usuario.AceptaTerminos || usuario.FechaAceptacionTerminos.IsZero() {
+		return ""
+	}
+	return usuario.FechaAceptacionTerminos.Format(time.RFC3339)
 }

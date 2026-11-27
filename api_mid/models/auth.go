@@ -19,6 +19,7 @@ type Usuario struct {
 	FechaNacimiento         time.Time `json:"FechaNacimiento"`
 	AceptaTerminos          bool      `json:"AceptaTerminos"`
 	FechaAceptacionTerminos time.Time `json:"FechaAceptacionTerminos"`
+	VersionPolitica         string    `json:"VersionPolitica"`
 	Estado                  string    `json:"Estado"`
 	FechaRegistro           time.Time `json:"FechaRegistro"`
 	FechaUltimaSesion       time.Time `json:"FechaUltimaSesion"`
@@ -106,6 +107,8 @@ type DatosRegistro struct {
 	Ciudad          string `json:"ciudad"`
 	Direccion       string `json:"direccion"`
 	AceptaTerminos  bool   `json:"acepta_terminos"`
+	VersionPolitica string `json:"version_politica"` // version de la politica de datos que acepto
+	FechaNacimiento string `json:"fecha_nacimiento"` // "2006-01-02"; obligatoria en el registro
 }
 
 // DatosUsuarioAdmin: el admin crea (POST /v1/admin/usuarios) o edita

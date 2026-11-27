@@ -32,13 +32,16 @@ package controllers
 //
 // PASO 1. Registrarse (deja la sesion iniciada: entrega el token de una vez)
 //   POST /v1/registro   (sin token)
-//   Body (obligatorios: nombre, apellido, email, contrasena, acepta_terminos):
+//   Body (obligatorios: nombre, apellido, email, contrasena, fecha_nacimiento,
+//         acepta_terminos y version_politica):
 //     {
 //       "nombre": "Laura",
 //       "apellido": "Gomez",
 //       "email": "laura.gomez@email.com",
 //       "contrasena": "Financeup2026",
+//       "fecha_nacimiento": "1998-04-12",
 //       "acepta_terminos": true,
+//       "version_politica": "1.0",
 //       "id_tipo_documento": 1,
 //       "cedula": "1098765432",
 //       "telefono": "3157778899",
@@ -46,7 +49,8 @@ package controllers
 //       "direccion": "Calle 45 # 12-30"
 //     }
 //   Reglas: nombre y apellido minimo 3 letras; contrasena de 8 a 72
-//   caracteres con una mayuscula y un numero; la cedula no se puede repetir.
+//   caracteres con una mayuscula y un numero; la cedula no se puede repetir;
+//   hay que ser mayor de 18 anos (tambien al cambiar la fecha en el perfil).
 //   id_tipo_documento: 1 = CC, 2 = CE, 3 = Pasaporte, 4 = NIT.
 //   Al registrarse queda con el rol "Usuario".
 //   Respuesta 201 (igual que el paso 3 del login, con otro mensaje):
@@ -119,7 +123,9 @@ package controllers
 //       "email": "laura.gomez@email.com", "tipo_documento": "CC",
 //       "cedula": "1098765432", "telefono": "3157778899", "ciudad": "Bogota",
 //       "direccion": "Calle 45 # 12-30", "fecha_nacimiento": "",
-//       "estado": "activo", "rol": "user" }
+//       "estado": "activo", "rol": "user",
+//       "version_politica": "1.0",
+//       "fecha_aceptacion_terminos": "2026-11-27T15:00:00Z" }
 //
 // PASO 5. Cambiar la contrasena (opcional)
 //   PUT /v1/perfil/7/contrasena   (con token)
