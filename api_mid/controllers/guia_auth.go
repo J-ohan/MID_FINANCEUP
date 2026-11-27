@@ -63,8 +63,10 @@ package controllers
 //       "apellido": "Gomez",
 //       "email": "laura.gomez@email.com",
 //       "rol": "user",
-//       "estado": "activo"
+//       "estado": "activo",
+//       "debe_aceptar_politica": false
 //     }
+//   version_politica debe ser la vigente ("1.0"); si no, responde 400.
 //
 // ----------------------------------------------------------------------------
 // B. INICIO DE SESION (cada vez que se entra)
@@ -79,6 +81,8 @@ package controllers
 //       "requiere_codigo": true, "token_verificacion": "eyJhbGciOiJIUzI1NiIs..." }
 //   El token_verificacion dura 10 minutos y SOLO sirve para los pasos 3 y 3b:
 //   con el no se puede entrar a ninguna otra ruta.
+//   EL ADMINISTRADOR NO USA CODIGO: con la clave correcta la respuesta ya es la
+//   sesion (igual que el paso 3) con "requiere_codigo": false. Se salta el paso 3.
 //
 // PASO 3. Codigo del login (entrega el token de la sesion, dura 8 horas)
 //   POST /v1/login/verificar   (sin token)
@@ -94,9 +98,14 @@ package controllers
 //       "apellido": "Gomez",
 //       "email": "laura.gomez@email.com",
 //       "rol": "user",
-//       "estado": "activo"
+//       "estado": "activo",
+//       "debe_aceptar_politica": false
 //     }
 //   "rol" es "admin" si el usuario tiene el rol Administrador; si no, "user".
+//   "debe_aceptar_politica" es true si un usuario normal todavia no acepto la
+//   version vigente (cuenta creada por el admin, con Google o politica nueva):
+//   la pagina le muestra la politica y llama al PASO 4b antes de dejarlo seguir.
+//   Para el admin siempre es false.
 //
 // PASO 3b. Reenviar el codigo (solo si no llego; esperar 1 minuto entre codigos)
 //   POST /v1/login/reenviar   (sin token)
@@ -126,6 +135,13 @@ package controllers
 //       "estado": "activo", "rol": "user",
 //       "version_politica": "1.0",
 //       "fecha_aceptacion_terminos": "2026-11-27T15:00:00Z" }
+//
+// PASO 4b. Aceptar la politica de datos (cuando debe_aceptar_politica es true)
+//   PUT /v1/perfil/7/politica   (con token)
+//   Body:
+//     { "acepta_terminos": true, "version_politica": "1.0" }
+//   Respuesta 200: el perfil del paso 4 con la version y la fecha de aceptacion.
+//   Errores 400: acepta_terminos en false o una version que no es la vigente.
 //
 // PASO 5. Cambiar la contrasena (opcional)
 //   PUT /v1/perfil/7/contrasena   (con token)

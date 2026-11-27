@@ -454,6 +454,8 @@ func sesionIniciada(usuario models.Usuario) (map[string]interface{}, error) {
 		"email":      usuario.Email,
 		"rol":        rol,
 		"estado":     usuario.Estado,
+		// El usuario normal debe aceptar la politica vigente antes de usar la app; el admin no
+		"debe_aceptar_politica": rol != "admin" && usuario.VersionPolitica != VersionPoliticaVigente,
 	}, nil
 }
 
@@ -564,8 +566,8 @@ func Registrar(datos models.DatosRegistro) (map[string]interface{}, error) {
 	if !datos.AceptaTerminos {
 		return nil, helpers.NuevoError(http.StatusBadRequest, "Debes aceptar los terminos y condiciones")
 	}
-	if strings.TrimSpace(datos.VersionPolitica) == "" {
-		return nil, helpers.NuevoError(http.StatusBadRequest, "Falta la version de la politica de datos que aceptaste")
+	if strings.TrimSpace(datos.VersionPolitica) != VersionPoliticaVigente {
+		return nil, helpers.NuevoError(http.StatusBadRequest, "La politica de datos cambio: recarga la pagina y vuelve a aceptarla")
 	}
 	if datos.FechaNacimiento == "" {
 		return nil, helpers.NuevoError(http.StatusBadRequest, "La fecha de nacimiento es obligatoria")
@@ -623,18 +625,16 @@ func crearCuenta(datos models.DatosRegistro) (models.Usuario, error) {
 
 	// 3. Crear el usuario (la cedula es opcional: vacia se guarda NULL)
 	nuevoUsuario := models.Usuario{
-		Nombre:                  datos.Nombre,
-		Apellido:                datos.Apellido,
-		Email:                   email,
-		Telefono:                strings.TrimSpace(datos.Telefono),
-		Ciudad:                  strings.TrimSpace(datos.Ciudad),
-		Direccion:               strings.TrimSpace(datos.Direccion),
-		FechaNacimiento:         fechaNacimiento,
-		AceptaTerminos:          true,
-		FechaAceptacionTerminos: time.Now().UTC(),
-		VersionPolitica:         strings.TrimSpace(datos.VersionPolitica),
-		Estado:                  "activo",
-		Activo:                  true,
+		Nombre:          datos.Nombre,
+		Apellido:        datos.Apellido,
+		Email:           email,
+		Telefono:        strings.TrimSpace(datos.Telefono),
+		Ciudad:          strings.TrimSpace(datos.Ciudad),
+		Direccion:       strings.TrimSpace(datos.Direccion),
+		FechaNacimiento: fechaNacimiento,
+		AceptaTerminos:  datos.AceptaTerminos,
+		Estado:          "activo",
+		Activo:          true,
 	}
 
 	if cedula := strings.TrimSpace(datos.Cedula); cedula != "" {
@@ -643,6 +643,12 @@ func crearCuenta(datos models.DatosRegistro) (models.Usuario, error) {
 
 	if datos.IdTipoDocumento > 0 {
 		nuevoUsuario.TipoDocumento = &models.Ref{Id: datos.IdTipoDocumento}
+	}
+
+	// Prueba de la autorizacion. Si la cuenta la crea el admin, la persona acepta en su primer ingreso
+	if datos.AceptaTerminos {
+		nuevoUsuario.FechaAceptacionTerminos = time.Now().UTC()
+		nuevoUsuario.VersionPolitica = strings.TrimSpace(datos.VersionPolitica)
 	}
 
 	if err := helpers.Crear(helpers.UrlCrudAuth+"/usuario", nuevoUsuario, &nuevoUsuario); err != nil {
@@ -659,7 +665,8 @@ func crearCuenta(datos models.DatosRegistro) (models.Usuario, error) {
 }
 
 // IniciarSesion (paso 1): valida correo y clave y envia el codigo al correo.
-// Bloquea 15 minutos tras 5 intentos fallidos.
+// El administrador no necesita codigo: con la clave correcta recibe la sesion.
+// Bloquea 15 minutos tras 5 intentos fallidos (tambien al admin).
 func IniciarSesion(datos models.DatosLogin) (map[string]interface{}, error) {
 
 	// Mismo mensaje si el correo no existe o la clave esta mal
@@ -710,6 +717,20 @@ func IniciarSesion(datos models.DatosLogin) (map[string]interface{}, error) {
 	// Solo con la clave correcta se dice si la cuenta tiene problemas
 	if err := revisarEstado(usuario); err != nil {
 		return nil, err
+	}
+
+	// El administrador entra directo, sin codigo al correo
+	roles, err := rolesDelUsuario(usuario.Id)
+	if err != nil {
+		return nil, err
+	}
+	if rolPrincipal(roles) == "admin" {
+		sesion, err := sesionIniciada(usuario)
+		if err != nil {
+			return nil, err
+		}
+		sesion["requiere_codigo"] = false
+		return sesion, nil
 	}
 
 	respuesta := map[string]interface{}{
@@ -985,6 +1006,11 @@ func CerrarSesion(token helpers.DatosToken, ip string, navegador string) map[str
 	return map[string]interface{}{"mensaje": "Sesion cerrada"}
 }
 
+// VersionPoliticaVigente es la version de la politica de datos publicada en la pagina.
+// Si cambia el texto de la politica se sube aqui y en el cliente (shared/utils/politica.ts):
+// cada usuario normal la vuelve a aceptar en su siguiente ingreso.
+const VersionPoliticaVigente = "1.0"
+
 // EdadMinima es la edad para tener cuenta en FinanceUp.
 const EdadMinima = 18
 
@@ -1006,4 +1032,33 @@ func fechaAceptacion(usuario models.Usuario) string {
 		return ""
 	}
 	return usuario.FechaAceptacionTerminos.Format(time.RFC3339)
+}
+
+// AceptarPolitica guarda que el usuario acepto la version vigente de la politica de datos
+// (cuentas creadas por el admin o cuando la politica cambia). Devuelve el perfil.
+func AceptarPolitica(idUsuario int, datos models.DatosPolitica) (map[string]interface{}, error) {
+
+	if !datos.AceptaTerminos {
+		return nil, helpers.NuevoError(http.StatusBadRequest, "Debes aceptar la politica de datos para usar FinanceUp")
+	}
+	if strings.TrimSpace(datos.VersionPolitica) != VersionPoliticaVigente {
+		return nil, helpers.NuevoError(http.StatusBadRequest, "La politica de datos cambio: recarga la pagina y vuelve a aceptarla")
+	}
+
+	usuario, err := BuscarUsuario(idUsuario)
+	if err != nil {
+		return nil, err
+	}
+
+	usuario.AceptaTerminos = true
+	usuario.FechaAceptacionTerminos = time.Now().UTC()
+	usuario.VersionPolitica = VersionPoliticaVigente
+
+	if err := helpers.Actualizar(fmt.Sprintf("%s/usuario/%d", helpers.UrlCrudAuth, idUsuario), usuario); err != nil {
+		return nil, err
+	}
+
+	RegistrarActividad(idUsuario, "ACEPTA_POLITICA", "Acepto la politica de datos version "+VersionPoliticaVigente, "auth.usuario")
+
+	return ObtenerPerfil(idUsuario)
 }

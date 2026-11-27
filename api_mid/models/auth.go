@@ -183,3 +183,9 @@ type DatosAdminUsuario struct {
 	Estado string `json:"estado"`
 	Motivo string `json:"motivo"`
 }
+
+// DatosPolitica: body de PUT /v1/perfil/:id/politica
+type DatosPolitica struct {
+	AceptaTerminos  bool   `json:"acepta_terminos"`
+	VersionPolitica string `json:"version_politica"`
+}

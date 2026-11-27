@@ -61,6 +61,30 @@ func (c *AuthController) PutPerfil() {
 	helpers.Responder(&c.Controller, http.StatusOK, perfil)
 }
 
+// PUT /v1/perfil/:id/politica  (aceptar la politica de datos vigente)
+func (c *AuthController) PutAceptarPolitica() {
+
+	id, err := helpers.LeerId(&c.Controller)
+	if err != nil {
+		helpers.ResponderError(&c.Controller, err)
+		return
+	}
+
+	var datos models.DatosPolitica
+	if err := helpers.LeerBody(&c.Controller, &datos); err != nil {
+		helpers.ResponderError(&c.Controller, err)
+		return
+	}
+
+	perfil, err := services.AceptarPolitica(id, datos)
+	if err != nil {
+		helpers.ResponderError(&c.Controller, err)
+		return
+	}
+
+	helpers.Responder(&c.Controller, http.StatusOK, perfil)
+}
+
 // POST /v1/registro
 func (c *AuthController) PostRegistro() {
 
